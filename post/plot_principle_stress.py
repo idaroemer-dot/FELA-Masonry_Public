@@ -5,7 +5,7 @@ def plotPS(X, T, x, nel, sfac):
     plt.figure(2)
     plt.title("Principal stresses")
     plt.axis("equal")
-    ldof = [0, 1, 2, 0]  # MATLAB [1 2 3 1] -> Python 0-based
+    ldof = [0, 1, 2, 0]  # local dof indices for plotting element edges
 
     for el in range(nel):
         plt.plot(X[T[el, ldof], 0], X[T[el, ldof], 1], "b-")

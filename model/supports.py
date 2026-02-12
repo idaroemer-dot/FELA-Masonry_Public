@@ -1,8 +1,8 @@
 import numpy as np
 
-def setsup(S, H):
-    nsup = S.shape[0]
-    supeq = 2*S[:, 0] + (S[:, 1] - 1)   # node is 0-based, dir is 1/2
-    supeq = supeq.astype(int)
-    Hsup = np.delete(H, supeq, axis=0)
-    return nsup, supeq, Hsup
+def setsup(supports, global_equilibrium):
+    number_sup = supports.shape[0]
+    global_DOF_index_supports = 2*supports[:, 0] + supports[:, 1]
+    global_DOF_index_supports = global_DOF_index_supports.astype(int)
+    global_equilibrium_reduced = np.delete(global_equilibrium, global_DOF_index_supports, axis=0)
+    return number_sup, global_DOF_index_supports, global_equilibrium_reduced

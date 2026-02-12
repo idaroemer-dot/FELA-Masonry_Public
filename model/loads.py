@@ -1,14 +1,14 @@
 import numpy as np
 
-def setload(neq, supeq, L):
-    R = np.zeros(neq)
-    nload = L.shape[0]
+def setload(number_equations, global_DOF_index_supports, loads):
+    global_load_vector = np.zeros(number_equations)
+    number_load = loads.shape[0]
 
-    idx = 2*L[:, 0] + (L[:, 1] - 1)   # node is 0-based, dir is 1/2
-    idx = idx.astype(int)
+    global_DOF_index_load = 2*loads[:, 0] + loads[:, 1]
+    global_DOF_index_load = global_DOF_index_load.astype(int)
 
-    R[idx] += L[:, 2]
+    global_load_vector[global_DOF_index_load] += loads[:, 2] # accumulate loads if multiple loads are applied to the same DOF
 
-    Rsup = np.delete(R, supeq)
+    global_load_vector_reduced = np.delete(global_load_vector, global_DOF_index_supports)
 
-    return nload, R, Rsup
+    return number_load, global_load_vector, global_load_vector_reduced

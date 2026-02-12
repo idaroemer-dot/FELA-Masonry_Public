@@ -68,7 +68,7 @@ def setcon(nel, G):
 
             C[3*el + no] = {
                 "type": "MSK_CT_QUAD",
-                "sub": cp_alfa + np.array([0, 3, 4])  # MATLAB [1 4 5] -> Python [0 3 4]
+                "sub": cp_alfa + np.array([0, 3, 4])  
             }
 
     return Ab.tocsr(), blc, buc, C

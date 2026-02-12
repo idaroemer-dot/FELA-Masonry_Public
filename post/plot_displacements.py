@@ -7,11 +7,17 @@ cy = np.array([
     [2, 0, 1]
 ])
 
+
 def plotDof(X, T, y, supeq, nel, nno, scale):
-    plt.figure()
+    plt.figure(3)
     plt.axis("equal")
     plt.axis("off")
     plt.gca().set_aspect("equal", adjustable="box")
+
+#    print("2*nno =", 2*nno)
+#    print("len(supeq) =", len(supeq))
+#    print("expected free dofs =", 2*nno - len(supeq))
+#    print("len(y) =", len(y))
 
     y = -np.asarray(y, dtype=float).ravel() * scale
 

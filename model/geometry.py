@@ -17,14 +17,3 @@ for x in np.linspace(0,L,ndivitionsx):
             ncoor = np.array([[x,y]])
 
 
-number_elements = 10
-
-variables_per_element = np.zeros((number_elements, 9), dtype=int)
-print(variables_per_element.shape)
-
-for elements in range(number_elements):
-    variables_per_element[elements, :] = elements * 9 + np.arange(9)   
-number_variabels = 9 * number_elements
-
-print(number_variabels)
-print(variables_per_element)
