@@ -63,12 +63,11 @@ def setcon(nel, G):
             cp_alfa = 9*nel + 1 + (3*el + no) * na
             Ab[r, slice(cp_alfa, cp_alfa + na)] = np.vstack((Aaeq, Aa))
 
-            blc[r] = np.concatenate((byeq, -np.inf*np.ones_like(by)))
-            buc[r] = np.concatenate((byeq, by))
+            blc[r] = np.concatenate((byeq, -np.inf*np.ones_like(by))) # bound vaulues for lower constraints
+            buc[r] = np.concatenate((byeq, by))                       # bound values for upper constraints
 
             C[3*el + no] = {
                 "type": "MSK_CT_QUAD",
                 "sub": cp_alfa + np.array([0, 3, 4])  
             }
-
     return Ab.tocsr(), blc, buc, C
