@@ -8,7 +8,7 @@ def plotPS(X, T, x, nel, sfac):
     ldof = [0, 1, 2, 0]  # local dof indices for plotting element edges
 
     for el in range(nel):
-        plt.plot(X[T[el, ldof], 0], X[T[el, ldof], 1], "b-")
+        plt.plot(X[T[el, ldof], 0], X[T[el, ldof], 1], "b-", linewidth=0.4)
 
     for el in range(nel):
         xp = np.mean(X[T[el, :], :], axis=0)
@@ -27,14 +27,14 @@ def plotPS(X, T, x, nel, sfac):
 
         phi = 0.5*np.arctan2(s[2], ds)
 
-        n = np.array([np.cos(phi), np.sin(phi)]) * sfac
-        p1 = xp - n * (s1/2.0)
-        p2 = xp + n * (s1/2.0)
+        n = np.array([np.cos(phi), np.sin(phi)])
+        p1 = xp - sfac * n * (s1/2.0)
+        p2 = xp + sfac * n * (s1/2.0)
         plt.plot([p1[0], p2[0]], [p1[1], p2[1]], "r-" if s1 > 0 else "b-")
 
         n = np.array([-n[1], n[0]])
-        p1 = xp - n * (s2/2.0)
-        p2 = xp + n * (s2/2.0)
+        p1 = xp - sfac * n * (s2/2.0)
+        p2 = xp + sfac * n * (s2/2.0)
         plt.plot([p1[0], p2[0]], [p1[1], p2[1]], "r-" if s2 > 0 else "b-")
 
     plt.show()

@@ -11,12 +11,12 @@ def plot_topology(node_coordinates, elements_topology, number_elements, number_n
     for el in range(number_elements):
         plt.plot(node_coordinates[elements_topology[el, local_dof], 0], node_coordinates[elements_topology[el, local_dof], 1], 'b-')
 
-    for no in range(number_nodes): # write node numbers
-        plt.text(node_coordinates[no, 0], node_coordinates[no, 1], str(no + 1),
-                 color='blue', backgroundcolor=(0.7, 0.7, 0.7))
+    # for no in range(number_nodes): # write node numbers
+    #    plt.text(node_coordinates[no, 0], node_coordinates[no, 1], str(no + 1),
+    #             color='blue', backgroundcolor=(0.7, 0.7, 0.7))
 
-    for el in range(number_elements): # write element numbers
-        xp = np.mean(node_coordinates[elements_topology[el, :], :], axis=0)
-        plt.text(xp[0], xp[1], str(el + 1), color='black')
+    # for el in range(number_elements): # write element numbers
+    #    xp = np.mean(node_coordinates[elements_topology[el, :], :], axis=0)
+    #    plt.text(xp[0], xp[1], str(el + 1), color='black')
 
     plt.show()

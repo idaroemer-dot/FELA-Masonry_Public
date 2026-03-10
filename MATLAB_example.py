@@ -94,7 +94,7 @@ from model.loads import setload
 number_load, global_load_vector, global_load_vector_reduced = setload(2*number_nodes, global_DOF_index_supports, loads)
 
 #Set constraints
-from fem.constrains import setcon
+from fem.constrains_RC import setcon
 Ab, blc, buc, C = setcon(number_elements, G)
 
 #Optimize
