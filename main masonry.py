@@ -6,12 +6,13 @@ import math
 import pyvista
 import matplotlib.tri as mtri
 
+
 #---------Topology---------# 
-lenght = 0.5           # Total length   
+lenght = 1    # Total length   
 height = 1    # Total height
 
-nx = 8
-ny = 14
+nx = 10
+ny = 10
 
 a = (lenght/nx)/2     # Length of cell in x direction
 b = (height/ny)/2     # Height of cell in y direction
@@ -84,39 +85,44 @@ print("Number of nodes:", number_nodes)
 print("Number of elements:", number_elements)
 
 # materials: G[el] = [t, ctau, cn, mu]
-t   = 0.1
-fcm = 5
-ftm = 0.43
-km = 0.5
+# t   = 0.2   #[m]
+# fcm = 20e6  #[Pa]
+# ftx = 300e6  #[Pa]
+# nu = 0.2
 
-G_base = np.array([[t, fcm, ftm, km]])
+t   = 0.228   #[m] helstensvæg
+fcm = 2e6  #[Pa]
+ftx = 0.3e6  #[Pa]
+nu = 0.2
+G_base = np.array([[t, fcm, ftx, nu]])
 G = np.tile(G_base, (number_elements, 1))
 
 # supports[i] = [node, direction]
 tol = 1e-10
 supports = []
 
+# for i, (x, y) in enumerate(node_coordinates):
+#     if abs(y - 0.0) < tol:
+#         supports.append([i, 1])   # Uy = 0 on bottom
+
+# # fix one x-DOF to avoid rigid body motion
+# for i, (x, y) in enumerate(node_coordinates):
+#     if abs(x - 0.0) < tol and abs(y - 0.0) < tol:
+#         supports.append([i, 0])   # Ux = 0 at bottom-left corner
+#         break
+
 for i, (x, y) in enumerate(node_coordinates):
 
-    # bottom edge fixed
-    if abs(y - 0.0) < tol:
-        supports.append([i, 0])   # Ux = 0
-        supports.append([i, 1])   # Uy = 0
+    # Left side (symmetri): Ux = 0
+    if abs(x - 0.0) < tol:
+        supports.append([i, 0])
+
+    # Right side (rulle): Uy = 0
+    if abs(x - lenght) < tol:
+        supports.append([i, 1])
 
 supports = np.array(supports, dtype=int)
 
-
-# for i, (x, y) in enumerate(node_coordinates):
-
-#     # Venstre side (symmetri): Ux = 0
-#     if abs(x - 0.0) < tol:
-#         supports.append([i, 0])
-
-#     # Højre side (rulle): Uy = 0
-#     if abs(x - lenght) < tol:
-#         supports.append([i, 1])
-
-# supports = np.array(supports, dtype=int)
 
 # supports = np.array([
 #     #pinned supports (Ux = 0, Uy = 0)
@@ -138,50 +144,61 @@ supports = np.array(supports, dtype=int)
 print(supports)
 
 # loads[i] = [node, direction, value]
-
-f =20
-f1=1
-f2=10
-
-# loads[i] = [node, direction, value]
-q = 20
-lam_ref = 0.35
-p = lam_ref * q * lenght / height   # 3.5 kN/m
-
+f=1
 tol = 1e-10
 loads = []
 
-# ---- top boundary nodes ----
+# find all nodes on top boundary
 top_nodes = [i for i, (x, y) in enumerate(node_coordinates)
              if abs(y - height) < tol]
-top_nodes = sorted(top_nodes, key=lambda i: node_coordinates[i, 0])
 
-# ---- left boundary nodes ----
-left_nodes = [i for i, (x, y) in enumerate(node_coordinates)
-              if abs(x - 0.0) < tol]
-left_nodes = sorted(left_nodes, key=lambda i: node_coordinates[i, 1])
+# total load F_total
+F_total = f
 
-# nodal forces from line loads using trapezoidal rule
-top_spacing = lenght / (len(top_nodes) - 1)
-left_spacing = height / (len(left_nodes) - 1)
-
-# top load q downward
-for k, i in enumerate(top_nodes):
-    weight = 0.5 if (k == 0 or k == len(top_nodes)-1) else 1.0
-    loads.append([i, 1, -q * top_spacing * weight])
-
-# left load p to the right
-for k, i in enumerate(left_nodes):
-    weight = 0.5 if (k == 0 or k == len(left_nodes)-1) else 1.0
-    loads.append([i, 0, p * left_spacing * weight])
+# distribute evenly
+for i in top_nodes:
+    loads.append([i, 1, -F_total / len(top_nodes)])
 
 loads = np.array(loads, dtype=float)
 
-print("top nodes:", top_nodes)
-print("left nodes:", left_nodes)
-print("sum Fx =", np.sum(loads[loads[:,1] == 0, 2]))
-print("sum Fy =", np.sum(loads[loads[:,1] == 1, 2]))
 print(loads)
+
+
+# q = 1
+# lam_ref = 0.35
+# p = lam_ref * q * lenght / height   
+
+# tol = 1e-10
+# loads = []
+
+# # ---- top boundary nodes ----
+# top_nodes = [i for i, (x, y) in enumerate(node_coordinates)
+#              if abs(y - height) < tol]
+# top_nodes = sorted(top_nodes, key=lambda i: node_coordinates[i, 0])
+
+# # ---- left boundary nodes ----
+# left_nodes = [i for i, (x, y) in enumerate(node_coordinates)
+#               if abs(x - 0.0) < tol
+#               and y >= 0.8*height]
+# left_nodes = sorted(left_nodes, key=lambda i: node_coordinates[i, 1])
+
+# # nodal forces from line loads using trapezoidal rule
+# top_spacing = lenght / (len(top_nodes) - 1)
+# left_spacing = height / (len(left_nodes) - 1)
+
+# # top load q downward
+# for k, i in enumerate(top_nodes):
+#     weight = 0.5 if (k == 0 or k == len(top_nodes)-1) else 1.0
+#     loads.append([i, 1, -q * top_spacing * weight])
+
+# left load p to the right
+# for k, i in enumerate(left_nodes):
+#     weight = 0.5 if (k == 0 or k == len(left_nodes)-1) else 1.0
+#     loads.append([i, 0, p * left_spacing * weight])
+
+
+# # loads[i] = [node, direction, value]
+# f=100
 
 # # find all nodes on top boundary
 # top_nodes = [i for i, (x, y) in enumerate(node_coordinates)
@@ -195,6 +212,15 @@ print(loads)
 #     loads.append([i, 1, -F_total / len(top_nodes)])
 
 # loads = np.array(loads, dtype=float)
+
+# # total load F_total
+# F_total = f
+
+# # distribute evenly
+# for i in top_nodes:
+#     loads.append([i, 1, -F_total / len(top_nodes)])
+
+loads = np.array(loads, dtype=float)
 
 # loads = np.array([
 #    [21, 1, -f1],
@@ -246,14 +272,15 @@ for el in range(number_elements):
         sy_all.append(x[idx+1])
         tau_all.append(x[idx+2])
 
-print("max |sx|  =", np.max(np.abs(sx_all)))
-print("max |sy|  =", np.max(np.abs(sy_all)))
-print("max |tau| =", np.max(np.abs(tau_all)))
+print("lambda =", lambda_val)
+print("min sy =", np.min(sy_all))
+print("max sy =", np.max(sy_all))
+
 
 #Plot principal stresses
 from post.plot_principle_stress import plotPS
-plotPS(node_coordinates, elements_topology, x, number_elements, 1.5)
+plotPS(node_coordinates, elements_topology, x, number_elements, 1e-6)
 
-#Plot displacements
+#Plot displacements 
 from post.plot_displacements import plotDof
-plotDof(node_coordinates, elements_topology, y, global_DOF_index_supports, number_elements, number_nodes,0.5)
+plotDof(node_coordinates, elements_topology, y, global_DOF_index_supports, number_elements, number_nodes,1e-1)

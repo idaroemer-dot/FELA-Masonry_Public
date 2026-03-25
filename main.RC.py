@@ -11,8 +11,8 @@ import matplotlib.tri as mtri
 lenght = 1           # Total length   
 height = 1    # Total height
 
-nx = 4
-ny = 2
+nx = 10
+ny = 10
 
 a = (lenght/nx)/2     # Length of cell in x direction
 b = (height/ny)/2     # Height of cell in y direction
@@ -108,15 +108,16 @@ supports = []
 
 for i, (x, y) in enumerate(node_coordinates):
 
-    # Venstre side (symmetri): Ux = 0
+    # Left side (symmetri): Ux = 0
     if abs(x - 0.0) < tol:
         supports.append([i, 0])
 
-    # Højre side (rulle): Uy = 0
+    # Right side (rulle): Uy = 0
     if abs(x - lenght) < tol:
         supports.append([i, 1])
 
 supports = np.array(supports, dtype=int)
+
 
 #supports = np.array([
     # pinned supports (Ux = 0, Uy = 0)
@@ -209,6 +210,22 @@ Ab, blc, buc, C = setcon(number_elements, G)
 #Optimize
 from optimization.mosek_solver import solveopt
 x, y, lambda_val = solveopt(number_elements, global_equilibrium_reduced, global_load_vector_reduced, Ab, blc, buc, C)
+
+sx_all = []
+sy_all = []
+tau_all = []
+
+for el in range(number_elements):
+    for gp in range(3):
+        idx = 9*el + 3*gp
+        sx_all.append(x[idx+0])
+        sy_all.append(x[idx+1])
+        tau_all.append(x[idx+2])
+
+print("lambda =", lambda_val)
+print("min sy =", np.min(sy_all))
+print("max sy =", np.max(sy_all))
+
 
 #Plot principal stresses
 from post.plot_principle_stress import plotPS
