@@ -37,8 +37,9 @@ def Ab_RC_ps(fc, phix, phiy):
 
 
 def setcon(nel, G):
-    na = 8
-    nr = 11
+    # set cones and coupling from stresses to extra cone parameters
+    na = 8 # number of extra cone parameters
+    nr = 11 #number of coupling restrictions
 
     Ab  = lil_matrix((3*nel*nr, 9*nel + 1 + 3*nel*na))
     blc = np.zeros(3*nel*nr, dtype=float)

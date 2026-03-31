@@ -2,67 +2,49 @@ from scipy.sparse import lil_matrix
 import numpy as np
 
 def Ab_masonry_ps(ftx, fcm, nu):
-
     Aseq = np.array([
-        [1, 0, 0],
-        [0, 1, 0],
-        [0, 0, 1],
-        [0, 0, 0],
-        [0, 0, 0],
+        [ 0,     0, -1],
+        [-0.5,  0.5, 0],
+        [-0.5, -0.5, 0],
     ], dtype=float)
 
     Aaeq = np.array([
-        [0, -1,  0, 0, 0, 0, -1, 0],
-        [0,  0, -1, 0, 0, 0,  0, -1],
-        [0,  0,  0, -1,0, 0,  0,  0],
-        [0, -0.5,0.5,0, 1, 0,  0,  0],
-        [0, -0.5,-0.5,0,0, 1,  0,  0],
+        [0,   1,   0,  0],
+        [0,   0,   1,  0],
+        [0,   0,   0,  1],
     ], dtype=float)
 
-    byeq = np.zeros(5)
+    byeq = np.zeros(3)
 
-    As = np.zeros((8,3))
+    As = np.zeros((5, 3), dtype=float)
 
     # --- masonry limits --- #
     Aa = np.array([
-            # --- VIII ---
-            [0, 0, 0, 0, 0, 0,  1, 0],
-            [0, 0, 0, 0, 0, 0, -1, 0],
+        [1.0, 0.0,  0.0,  1.0],   # Ia
+        [1.0, 0.0,  0.0, -1.0],   # II
+        [0.0, 0.0, -1.0,  1.0],   # Ib
+        [0.0,  1.0, 0.0, 0.0],    # VIIIa
+        [0.0, -1.0, 0.0, 0.0],    # VIIIb
 
-            # --- II (approx) ---
-            [0, 1, 0, 0, 0, 0,  1, 0],
-            [0, 1, 0, 0, 0, 0, -1, 0],
-
-            # --- IVa ---
-            [0, 1, 0, 0, 0, 0, 0, 0],
-
-            # --- I ---
-            [1, 0, 0, 0, 0, 0, 0, 0],
-
-            # --- compression ---
-            [0, -1, 0, 0, 0, 0, 0, 0],
-            [-1, 0, 0, 0, 0, 0, 0, 0],
-
-        ], dtype=float)
+    ], dtype=float)
 
     by = np.array([
-        0.5 * nu * fcm,
-        0.5 * nu * fcm,
-
-        fcm,
-        fcm,
-
-        0,
         ftx,
         fcm,
-        fcm
+        0.0,
+        0.5*nu*fcm,
+        0.5*nu*fcm,
     ], dtype=float)
+
 
     return Aseq, Aaeq, byeq, As, Aa, by
 
+
 def setcon_masonry(nel, G):
-    na = 8
-    nr = 13
+    na = 4
+    neq = 3
+    nin = 5
+    nr = neq+nin
 
     Ab  = lil_matrix((3*nel*nr, 9*nel + 1 + 3*nel*na))
     blc = np.zeros(3*nel*nr, dtype=float)
@@ -92,6 +74,6 @@ def setcon_masonry(nel, G):
 
             C[3*el + no] = {
                 "type": "MSK_CT_QUAD",
-                "sub": cp_alfa + np.array([0, 3, 4])  
+                "sub": cp_alfa + np.array([0, 1, 2])  
             }
     return Ab.tocsr(), blc, buc, C

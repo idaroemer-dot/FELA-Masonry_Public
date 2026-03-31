@@ -104,7 +104,7 @@ tau_IVa = np.sqrt(np.maximum(-(SY*(fcm + SY)),0))
 # # Region VIII - shear capacity limit
 # # -----------------------------
 
-# tau_VIII = tau_cap*np.ones_like(SX)
+tau_VIII = tau_cap*np.ones_like(SX)
 
 
 # colors = ["#FF8359", "#FFC7B4"]
@@ -134,8 +134,14 @@ tau_IVa = np.sqrt(np.maximum(-(SY*(fcm + SY)),0))
 #     0.5*fcl*(1-np.sin(phi_l))/np.cos(phi_l)
 #     - SY*np.tan(phi_l)
 # )
+alpha = np.asin(2*SY/fcl+1)
 
-# tau_IX = np.maximum(tau_IX,0)
+tau_IX = (
+    0.5*fcl*(1-np.sin(alpha))/np.cos(alpha)
+    - SY*np.tan(alpha)
+)
+
+tau_IX = np.maximum(tau_IX,0)
 
 # colors = ["#2BFF00", "#BFFFB4"]
 # fig = plt.figure(figsize=(8,6))
@@ -158,13 +164,17 @@ tau_IVa = np.sqrt(np.maximum(-(SY*(fcm + SY)),0))
 # # -----------------------------
 # # Region X - head joint failure
 # # -----------------------------
+xi = 0.2
+ms = 1.0
+ls = 1.0
+alpha_s = np.asin((SX+1/2*fcs*xi*ms+1/2*fce*(1-xi))/1/2*fcs*xi*ls+1/2*fce*(1-xi))
 
-# tau_X = (
-#     0.5*fcs*(1-np.sin(phi_s))/np.cos(phi_s)
-#     - SX*np.tan(phi_s)
-# )
+tau_X = (
+    0.5*fcs*(1-np.sin(alpha_s))/np.cos(alpha_s)
+    - SX*np.tan(alpha_s)
+)
 
-# tau_X = np.maximum(tau_X,0)
+tau_X = np.maximum(tau_X,0)
 
 # colors = ["#00FBFF", "#B4FFFF"]
 # fig = plt.figure(figsize=(8,6))
@@ -190,16 +200,16 @@ tau_IVa = np.sqrt(np.maximum(-(SY*(fcm + SY)),0))
 # # Region XI - staircase failure
 # # -----------------------------
 
-# omega = np.deg2rad(45)
+omega = np.deg2rad(45)
 
-# tau_XI = (
-#     0.5*fcl*np.cos(omega)*(1-np.sin(phi_l))
-#     +0.5*fce*np.sin(omega)*(1-np.cos(phi_l))
-#     -SX*np.sin(omega)*np.cos(phi_l)
-#     -SY*np.cos(omega)*np.sin(phi_l)
-# )
+tau_XI = (
+    0.5*fcl*np.cos(omega)*(1-np.sin(phi_l))
+    +0.5*fce*np.sin(omega)*(1-np.cos(phi_l))
+    -SX*np.sin(omega)*np.cos(phi_l)
+    -SY*np.cos(omega)*np.sin(phi_l)
+)
 
-# tau_XI = np.maximum(tau_XI,0)
+tau_XI = np.maximum(tau_XI,0)
 
 # colors = ["#C800FF", "#D8B4FF"]
 # fig = plt.figure(figsize=(8,6))
@@ -224,13 +234,13 @@ tau_IVa = np.sqrt(np.maximum(-(SY*(fcm + SY)),0))
 # # -----------------------------
 
 tau_max = np.minimum.reduce([
-    tau_I,
-    tau_II,
-    tau_IVa,
-    # tau_VIII,
-    # tau_IX,
-    # tau_X,
-    # tau_XI
+    #tau_I,
+    #tau_II,
+   # tau_IVa,
+   # tau_VIII,
+   #tau_IX,
+    tau_X,
+   # tau_XI
 ])
 
 # -----------------------------
@@ -329,4 +339,3 @@ plt.show()
 # ax.set_box_aspect([1,1,0.7])
 
 # plt.show()
-
