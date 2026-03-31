@@ -74,7 +74,6 @@ def solveopt(number_elements, global_equilibrium_reduced, global_load_vector_red
         for cone in C:
             if cone is None:
                 continue
-
             idx = np.asarray(cone["sub"], dtype=int).tolist()
 
             if cone["type"] == "MSK_CT_QUAD":

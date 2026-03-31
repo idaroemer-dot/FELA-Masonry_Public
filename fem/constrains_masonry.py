@@ -16,34 +16,6 @@ def Ab_masonry_ps(ftx, fcm, nu):
 
     byeq = np.zeros(3)
 
-    Aaeq_extra = np.array([
-    # z1 - 2*alpha2 = 0
-    [0, -2, 0, 0, 0, 1, 0],
-
-    # z2 - 2*alpha3 - 2*alpha4 = B
-    [0, 0, -2, -2, 0, 0, 1],
-
-    # z0 = A
-    [0, 0, 0, 0, 1, 0, 0],
-    ])
-
-    by = np.array([
-        ftx,
-        fcm,
-        0.0,
-        0.5*nu*fcm,
-        0.5*nu*fcm,
-    ], dtype=float)
-
-    byeq_extra = np.array([
-    0.0,
-    B,
-    A
-    ])
-
-    Aaeq = np.vstack((Aaeq, Aaeq_extra))
-    byeq = np.concatenate((byeq, byeq_extra))
-
     As = np.zeros((5, 3), dtype=float)
 
     # --- masonry limits --- #
@@ -53,16 +25,24 @@ def Ab_masonry_ps(ftx, fcm, nu):
         [0.0, 0.0, -1.0,  1.0],   # Ib
         [0.0,  1.0, 0.0, 0.0],    # VIIIa
         [0.0, -1.0, 0.0, 0.0],    # VIIIb
+
     ], dtype=float)
 
+    by = np.array([
+        ftx,
+        fcm,
+        0.0,
+        0.5*nu*fcm,
+        0.5*nu*fcm,
+    ], dtype=float)
 
 
     return Aseq, Aaeq, byeq, As, Aa, by
 
 
 def setcon_masonry(nel, G):
-    na = 7
-    neq = 6
+    na = 4
+    neq = 3
     nin = 5
     nr = neq+nin
 
@@ -92,14 +72,8 @@ def setcon_masonry(nel, G):
             blc[r] = np.concatenate((byeq, -np.inf*np.ones_like(by))) # bound vaulues for lower constraints
             buc[r] = np.concatenate((byeq, by))                       # bound values for upper constraints
 
-            C[3*el + no] = [
-                {
-                    "type": "MSK_CT_QUAD",
-                    "sub": cp_alfa + np.array([0, 1, 2])  # gammel cone
-                },
-                {
-                    "type": "MSK_CT_QUAD",
-                    "sub": cp_alfa + np.array([4, 5, 6])  # ny cone (z0,z1,z2)
-                }
-            ]
+            C[3*el + no] = {
+                "type": "MSK_CT_QUAD",
+                "sub": cp_alfa + np.array([0, 1, 2])  
+            }
     return Ab.tocsr(), blc, buc, C

@@ -266,7 +266,6 @@ number_load, global_load_vector, global_load_vector_reduced = setload(2*number_n
 from fem.constrains_masonry import setcon_masonry
 Ab, blc, buc, C = setcon_masonry(number_elements, G)
 
-print("||R|| =", np.linalg.norm(global_load_vector_reduced))
 #Optimize
 from optimization.mosek_solver import solveopt
 x, y, lambda_val = solveopt(number_elements, global_equilibrium_reduced, global_load_vector_reduced, Ab, blc, buc, C)
