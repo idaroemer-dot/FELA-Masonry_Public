@@ -10,10 +10,10 @@ import matplotlib.tri as mtri
 
 
 #---------Topology---------# 
-lenght = 1    # Total length   
+lenght = 2    # Total length   
 height = 1    # Total height
 
-nx = 10
+nx = 5
 ny = 10
 
 a = (lenght/nx)/2     # Length of cell in x direction
@@ -114,24 +114,26 @@ G = np.tile(G_base, (number_elements, 1))
 tol = 1e-10
 supports = []
 
-# for i, (x, y) in enumerate(node_coordinates):
-#     if abs(y - 0.0) < tol:
-#         supports.append([i, 1])   # Uy = 0 on bottom
-
-# # fix one x-DOF to avoid rigid body motion
-# for i, (x, y) in enumerate(node_coordinates):
-#     if abs(x - 0.0) < tol and abs(y - 0.0) < tol:
-#         supports.append([i, 0])   # Ux = 0 at bottom-left corner
-#         break
 for i, (x, y) in enumerate(node_coordinates):
+    if abs(y - 0.0) < tol:
+        supports.append([i, 1])   # Uy = 0 on bottom
 
-    # Left side (symmetri): Ux = 0
-    if abs(x - 0.0) < tol:
-        supports.append([i, 0])
+# fix one x-DOF to avoid rigid body motion
+for i, (x, y) in enumerate(node_coordinates):
+    if abs(x - 0.0) < tol and abs(y - 0.0) < tol:
+        supports.append([i, 0])   # Ux = 0 at bottom-left corner
+        break
 
-    # Right side (rulle): Uy = 0
-    if abs(x - lenght) < tol:
-        supports.append([i, 1])
+
+# for i, (x, y) in enumerate(node_coordinates):
+
+#     # Left side (symmetri): Ux = 0
+#     if abs(x - 0.0) < tol:
+#         supports.append([i, 0])
+
+#     # Right side (rulle): Uy = 0
+#     if abs(x - lenght) < tol:
+#         supports.append([i, 1])
 
 supports = np.array(supports, dtype=int)
 
@@ -170,34 +172,33 @@ print(supports)
 
 # print(loads)
 
+q = 100  # line load in N/m
+lam_ref = 0.5
+p = lam_ref * q
+print("p =", p)
 
-# q = 1
-# lam_ref = 0.5
-# p = lam_ref * q
-# print("p =", p)
+tol = 1e-10
+loads = []
 
-# tol = 1e-10
-# loads = []
+# ---- top boundary nodes ----
+top_nodes = [i for i, (x, y) in enumerate(node_coordinates)
+             if abs(y - height) < tol]
+top_nodes = sorted(top_nodes, key=lambda i: node_coordinates[i, 0])
 
-# # ---- top boundary nodes ----
-# top_nodes = [i for i, (x, y) in enumerate(node_coordinates)
-#              if abs(y - height) < tol]
-# top_nodes = sorted(top_nodes, key=lambda i: node_coordinates[i, 0])
+# ---- left boundary nodes ----
+left_nodes = [i for i, (x, y) in enumerate(node_coordinates)
+              if abs(x - 0.0) < tol
+              and y >= 0.8*height]
+left_nodes = sorted(left_nodes, key=lambda i: node_coordinates[i, 1])
 
-# # ---- left boundary nodes ----
-# left_nodes = [i for i, (x, y) in enumerate(node_coordinates)
-#               if abs(x - 0.0) < tol
-#               and y >= 0.8*height]
-# left_nodes = sorted(left_nodes, key=lambda i: node_coordinates[i, 1])
+# nodal forces from line loads using trapezoidal rule
+top_spacing = lenght / (len(top_nodes) - 1)
+left_spacing = height / (len(left_nodes) - 1)
 
-# # nodal forces from line loads using trapezoidal rule
-# top_spacing = lenght / (len(top_nodes) - 1)
-# left_spacing = height / (len(left_nodes) - 1)
-
-# #top load q downward
-# for k, i in enumerate(top_nodes):
-#     weight = 0.5 if (k == 0 or k == len(top_nodes)-1) else 1.0
-#     loads.append([i, 1, -q * top_spacing * weight])
+#top load q downward
+for k, i in enumerate(top_nodes):
+    weight = 0.5 if (k == 0 or k == len(top_nodes)-1) else 1.0
+    loads.append([i, 1, -q * top_spacing * weight])
 
 # left load p to the right
 # for k, i in enumerate(left_nodes):
@@ -206,23 +207,23 @@ print(supports)
 
 
 
-# loads[i] = [node, direction, value]
-f=1
-tol = 1e-10
-loads = []
+# # loads[i] = [node, direction, value]
+# f=1
+# tol = 1e-10
+# loads = []
 
-# find all nodes on top boundary
-top_nodes = [i for i, (x, y) in enumerate(node_coordinates)
-             if abs(y - height) < tol]
+# # find all nodes on top boundary
+# top_nodes = [i for i, (x, y) in enumerate(node_coordinates)
+#              if abs(y - height) < tol]
 
-# total load F_total
-F_total = f
+# # total load F_total
+# F_total = f
 
-# distribute evenly
-for i in top_nodes:
-    loads.append([i, 1, -F_total / len(top_nodes)])
+# # distribute evenly
+# for i in top_nodes:
+#     loads.append([i, 1, -F_total / len(top_nodes)])
 
-loads = np.array(loads, dtype=float)
+
 
 loads = np.array(loads, dtype=float)
 
