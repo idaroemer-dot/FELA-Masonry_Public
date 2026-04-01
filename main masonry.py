@@ -87,9 +87,9 @@ print("Number of nodes:", number_nodes)
 print("Number of elements:", number_elements)
 
 # materials: G[el] = [t, ctau, cn, mu]
-t   = 0.2   #[m]
-fcm = 20e6  #[Pa]
-ftx = 300e6  #[Pa]
+t   = 0.228   #[m]
+fcm = 2e6  #[Pa]
+ftx = 0.3e6  #[Pa]
 nu = 0.2
 
 # t   = 0.228   #[m] helstensvæg
@@ -200,10 +200,10 @@ for k, i in enumerate(top_nodes):
     weight = 0.5 if (k == 0 or k == len(top_nodes)-1) else 1.0
     loads.append([i, 1, -q * top_spacing * weight])
 
-# left load p to the right
-# for k, i in enumerate(left_nodes):
-#     weight = 0.5 if (k == 0 or k == len(left_nodes)-1) else 1.0
-#     loads.append([i, 0, p * left_spacing * weight])
+#left load p to the right
+for k, i in enumerate(left_nodes):
+    weight = 0.5 if (k == 0 or k == len(left_nodes)-1) else 1.0
+    loads.append([i, 0, p * left_spacing * weight])
 
 
 
@@ -283,9 +283,9 @@ print("max sy =", np.max(sy_all))
 
 #Plot principal stresses
 from post.plot_principle_stress import plotPS
-plotPS(node_coordinates, elements_topology, x, number_elements, 1e-8)
+plotPS(node_coordinates, elements_topology, x, number_elements, 1e-5)
 
 #Plot displacements 
 from post.plot_displacements import plotDof
-plotDof(node_coordinates, elements_topology, y, global_DOF_index_supports, number_elements, number_nodes,1e-1)
+plotDof(node_coordinates, elements_topology, y, global_DOF_index_supports, number_elements, number_nodes,1)
 
