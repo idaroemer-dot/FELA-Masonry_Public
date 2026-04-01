@@ -16,24 +16,24 @@ def Ab_masonry_ps(ftx, fcm, nu):
 
     byeq = np.zeros(3)
 
-    As = np.zeros((5, 3), dtype=float)
+    As = np.zeros((2, 3), dtype=float)
 
     # --- masonry limits --- #
     Aa = np.array([
         [1.0, 0.0,  0.0,  1.0],   # Ia
         [1.0, 0.0,  0.0, -1.0],   # II
-        [0.0, 0.0, -1.0,  1.0],   # Ib
-        [0.0,  1.0, 0.0, 0.0],    # VIIIa
-        [0.0, -1.0, 0.0, 0.0],    # VIIIb
+        # [0.0, 0.0, -1.0,  1.0],   # Ib
+        # [0.0,  1.0, 0.0, 0.0],    # VIIIa
+        # [0.0, -1.0, 0.0, 0.0],    # VIIIb
 
     ], dtype=float)
 
     by = np.array([
         ftx,
         fcm,
-        0.0,
-        0.5*nu*fcm,
-        0.5*nu*fcm,
+        # 0.0,
+        # 0.5*nu*fcm,
+        # 0.5*nu*fcm,
     ], dtype=float)
 
 
@@ -43,7 +43,7 @@ def Ab_masonry_ps(ftx, fcm, nu):
 def setcon_masonry(nel, G):
     na = 4
     neq = 3
-    nin = 5
+    nin = 2
     nr = neq+nin
 
     Ab  = lil_matrix((3*nel*nr, 9*nel + 1 + 3*nel*na))
