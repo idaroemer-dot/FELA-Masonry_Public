@@ -13,8 +13,8 @@ import matplotlib.tri as mtri
 lenght = 2    # Total length   
 height = 1    # Total height
 
-nx = 5
-ny = 10
+nx = 6
+ny = 5
 
 a = (lenght/nx)/2     # Length of cell in x direction
 b = (height/ny)/2     # Height of cell in y direction
@@ -287,5 +287,5 @@ plotPS(node_coordinates, elements_topology, x, number_elements, 1e-5)
 
 #Plot displacements 
 from post.plot_displacements import plotDof
-plotDof(node_coordinates, elements_topology, y, global_DOF_index_supports, number_elements, number_nodes,1)
+plotDof(node_coordinates, elements_topology, y, global_DOF_index_supports, number_elements, number_nodes,2)
 
