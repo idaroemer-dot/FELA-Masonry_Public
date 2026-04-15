@@ -93,9 +93,23 @@ print("Number of elements:", number_elements)
 # nu = 0.2
 
 
+t   = 0.228   #[m] helstensvæg
+fcm = 2e6  #[Pa]
+ftx = 0.3e6  #[Pa]
+ftm = 0.2e6
+nu = 0.2
+fcs = 0.5*fcm
+fce = 0.5*fcm
+xi = 0.5
+phi_s = np.deg2rad(30.0)
+fcl = 0.5*fcm
+phi_l = np.deg2rad(30.0)
+omega_max = np.deg2rad(45.0) 
+ls = 1
+ms = 1
 
 
-G_base = np.array([[t, fcm, ftx, nu]])
+G_base = np.array([[t, fcm, ftx, nu, fcs, fce, xi, phi_s, fcl, phi_l, omega_max]], dtype=float)
 G = np.tile(G_base, (number_elements, 1))
 
 # supports[i] = [node, direction]

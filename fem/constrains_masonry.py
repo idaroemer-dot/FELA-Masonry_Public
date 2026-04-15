@@ -94,6 +94,7 @@ def Ab_masonry_ps(ftx, fcm, nu, fcs, fce, xi, phi_s, fcl, phi_l, omega_max):
     # XI:   +/-tau_xy <= c0 - cx*sigma_x - cy*sigma_y
     # -------------------------------------------------
     As = np.array([
+        [ 0.0,  0.0,  0.0],   # I
         [ 0.0,  0.0,  0.0],   # II
         [ 0.0,  0.0,  1.0],   # VIIIa
         [ 0.0,  0.0, -1.0],   # VIIIb
