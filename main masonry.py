@@ -8,13 +8,12 @@ import math
 import pyvista
 import matplotlib.tri as mtri
 
-
 #---------Topology---------# 
-lenght = 2    # Total length   
+lenght = 1    # Total length   
 height = 1    # Total height
 
-nx = 6
-ny = 5
+nx = 4
+ny = 10
 
 a = (lenght/nx)/2     # Length of cell in x direction
 b = (height/ny)/2     # Height of cell in y direction
@@ -87,11 +86,10 @@ print("Number of nodes:", number_nodes)
 print("Number of elements:", number_elements)
 
 # materials: G[el] = [t, ctau, cn, mu]
-# t   = 0.228   #[m]
-# fcm = 2e6  #[Pa]
-# ftx = 0.3e6  #[Pa]
+# t   = 0.2   #[m]
+# fcm = 20e6  #[Pa]
+# ftx = 300e6  #[Pa]
 # nu = 0.2
-
 
 t   = 0.228   #[m] helstensvæg
 fcm = 2e6  #[Pa]
@@ -109,33 +107,33 @@ ls = 1
 ms = 1
 
 
-G_base = np.array([[t, fcm, ftx, nu, fcs, fce, xi, phi_s, fcl, phi_l, omega_max]], dtype=float)
+G_base = np.array([[t, fcm, ftx, nu, fcs, fce, xi, phi_s, fcl, phi_l, omega_max]])
 G = np.tile(G_base, (number_elements, 1))
 
 # supports[i] = [node, direction]
 tol = 1e-10
 supports = []
 
-for i, (x, y) in enumerate(node_coordinates):
-    if abs(y - 0.0) < tol:
-        supports.append([i, 1])   # Uy = 0 on bottom
-
-# fix one x-DOF to avoid rigid body motion
-for i, (x, y) in enumerate(node_coordinates):
-    if abs(x - 0.0) < tol and abs(y - 0.0) < tol:
-        supports.append([i, 0])   # Ux = 0 at bottom-left corner
-        break
-
-
 # for i, (x, y) in enumerate(node_coordinates):
+#     if abs(y - 0.0) < tol:
+#         supports.append([i, 1])   # Uy = 0 on bottom
 
-#     # Left side (symmetri): Ux = 0
-#     if abs(x - 0.0) < tol:
-#         supports.append([i, 0])
+# # fix one x-DOF to avoid rigid body motion
+# for i, (x, y) in enumerate(node_coordinates):
+#     if abs(x - 0.0) < tol and abs(y - 0.0) < tol:
+#         supports.append([i, 0])   # Ux = 0 at bottom-left corner
+#         break
 
-#     # Right side (rulle): Uy = 0
-#     if abs(x - lenght) < tol:
-#         supports.append([i, 1])
+for i, (x, y) in enumerate(node_coordinates):
+
+    # Left side (symmetri): Ux = 0
+    if abs(x - 0.0) < tol:
+        supports.append([i, 0])
+
+    # Right side (rulle): Uy = 0
+    if abs(x - lenght) < tol:
+       # supports.append([i, 0])
+        supports.append([i, 1])
 
 supports = np.array(supports, dtype=int)
 
@@ -174,8 +172,9 @@ print(supports)
 
 # print(loads)
 
-q = 100  # line load in N/m
-lam_ref = 0.5
+
+q = 1
+lam_ref = 0
 p = lam_ref * q
 print("p =", p)
 
@@ -208,11 +207,8 @@ for k, i in enumerate(left_nodes):
     loads.append([i, 0, p * left_spacing * weight])
 
 
-
 # # loads[i] = [node, direction, value]
-# f=1
-# tol = 1e-10
-# loads = []
+# f=100
 
 # # find all nodes on top boundary
 # top_nodes = [i for i, (x, y) in enumerate(node_coordinates)
@@ -225,7 +221,14 @@ for k, i in enumerate(left_nodes):
 # for i in top_nodes:
 #     loads.append([i, 1, -F_total / len(top_nodes)])
 
+# loads = np.array(loads, dtype=float)
 
+# # total load F_total
+# F_total = f
+
+# # distribute evenly
+# for i in top_nodes:
+#     loads.append([i, 1, -F_total / len(top_nodes)])
 
 loads = np.array(loads, dtype=float)
 
@@ -265,7 +268,7 @@ Ab, blc, buc, C = setcon_masonry(number_elements, G)
 
 #Optimize
 from optimization.mosek_solver import solveopt
-x, y, lambda_val = solveopt(number_elements, global_equilibrium_reduced, global_load_vector_reduced, Ab, blc, buc, C)
+x, alpha, y, lambda_val = solveopt(number_elements, global_equilibrium_reduced, global_load_vector_reduced, Ab, blc, buc, C)
 
 sx_all = []
 sy_all = []
@@ -285,9 +288,10 @@ print("max sy =", np.max(sy_all))
 
 #Plot principal stresses
 from post.plot_principle_stress import plotPS
-plotPS(node_coordinates, elements_topology, x, number_elements, 1e-5)
+plotPS(node_coordinates, elements_topology, x, number_elements, 1e-6)
 
 #Plot displacements 
 from post.plot_displacements import plotDof
-plotDof(node_coordinates, elements_topology, y, global_DOF_index_supports, number_elements, number_nodes,2)
+plotDof(node_coordinates, elements_topology, y, global_DOF_index_supports, number_elements, number_nodes,1e-1)
+
 
