@@ -1,81 +1,79 @@
 from scipy.sparse import lil_matrix
 import numpy as np
 
-def Ab_masonry(ctau, cn, mu, hb, lb, f):
+def Ab_masonry_ps(ftx, fcm, nu):
+    Aseq = np.array([
+        [ 0,     0, -1],
+        [-0.5,  0.5, 0],
+        [-0.5, -0.5, 0],
+    ], dtype=float)
 
-    rgeom = 2*hb/lb
-    sgeom = lb/(2*hb)
-    kgeom = f*lb/(2*hb)
+    Aaeq = np.array([
+        [0,   1,   0,  0],
+        [0,   0,   1,  0],
+        [0,   0,   0,  1],
+    ], dtype=float)
 
-    # equality constraints
-    Aseq = np.zeros((0,3))
-    Aaeq = np.zeros((0,0))
-    byeq = np.zeros(0)
+    byeq = np.zeros(3)
 
-    #second order cone constraints
-    As = np.zeros((0,3))
+    As = np.zeros((5, 3), dtype=float)
 
-    #inequality constraints
+    # --- masonry limits --- #
     Aa = np.array([
-        [0,mu,1],    # tau_xy + mu*sigma_y <= c_tau
-        [0,mu,-1],   # -tau_xy + mu*sigma_y <= c_tau
-        [0,1,0],     # sigma_y <= c_n
+        [1.0, 0.0,  0.0,  1.0],   # Ia
+        [1.0, 0.0,  0.0, -1.0],   # II
+        [0.0, 0.0, -1.0,  1.0],   # Ib
+        [0.0,  1.0, 0.0, 0.0],    # VIIIa
+        [0.0, -1.0, 0.0, 0.0],    # VIIIb
 
-        [rgeom,mu,(1+mu*rgeom)],   # phi_d^h positive
-        [rgeom,mu,-(1+mu*rgeom)],  # phi_d^h negative
-        [mu,sgeom,(1+mu*sgeom)],   # phi_d^v positive
-        [mu,sgeom,-(1+mu*sgeom)],  # phi_d^v negative
-
-        [1,kgeom*mu,0],     # vertical +
-        [1,-kgeom*mu,0]     # vertical -
     ], dtype=float)
-    
+
     by = np.array([
-        ctau,
-        ctau,
-        cn,
-        ctau + rgeom*cn,
-        ctau + rgeom*cn,
-        ctau + sgeom*cn,
-        ctau + sgeom*cn,
-        cn + kgeom*ctau,
-        cn + kgeom*ctau
+        ftx,
+        fcm,
+        0.0,
+        0.5*nu*fcm,
+        0.5*nu*fcm,
     ], dtype=float)
+
 
     return Aseq, Aaeq, byeq, As, Aa, by
 
 
-def setcon(nel, G):
-
-    na = 8 # no alpha variables yet
-    nr = 9 # yield constraints
+def setcon_masonry(nel, G):
+    na = 4
+    neq = 3
+    nin = 5
+    nr = neq+nin
 
     Ab  = lil_matrix((3*nel*nr, 9*nel + 1 + 3*nel*na))
-    blc = np.zeros(3*nel*nr)
-    buc = np.zeros(3*nel*nr)
-    C   = [None]*(3*nel)
+    blc = np.zeros(3*nel*nr, dtype=float)
+    buc = np.zeros(3*nel*nr, dtype=float)
+    C   = [None] * (3*nel)
 
     for el in range(nel):
         for no in range(3):
+            t  = G[el, 0]
+            fcm = G[el, 1]
+            ftx = G[el, 2]
+            nu = G[el, 3]
 
-            t    = G[el,0]
-            ctau = G[el,1]
-            cn   = G[el,2]
-            mu   = G[el,3]
-            hb   = G[el,4]
-            lb   = G[el,5]
-            f    = G[el,6]
+            Aseq, Aaeq, byeq, As, Aa, by = Ab_masonry_ps(ftx, fcm, nu)
 
-            Aseq, Aaeq, byeq, As, Aa, by = Ab_masonry(ctau, cn, mu, hb, lb, f)
-
-            rp = (3*el + no)*nr
-            r  = slice(rp, rp+nr)
+            rp = (3*el + no) * nr
+            r  = slice(rp, rp + nr)
 
             cp_beta = 9*el + no*3
+            Ab[r, slice(cp_beta, cp_beta + 3)] = np.vstack((Aseq / t, As))
 
-            Ab[r, slice(cp_beta, cp_beta + 3)] = Aa
+            cp_alfa = 9*nel + 1 + (3*el + no) * na
+            Ab[r, slice(cp_alfa, cp_alfa + na)] = np.vstack((Aaeq, Aa))
 
-            blc[r] = -np.inf
-            buc[r] = by
+            blc[r] = np.concatenate((byeq, -np.inf*np.ones_like(by))) # bound vaulues for lower constraints
+            buc[r] = np.concatenate((byeq, by))                       # bound values for upper constraints
 
+            C[3*el + no] = {
+                "type": "MSK_CT_QUAD",
+                "sub": cp_alfa + np.array([0, 1, 2])  
+            }
     return Ab.tocsr(), blc, buc, C

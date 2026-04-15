@@ -87,24 +87,12 @@ print("Number of nodes:", number_nodes)
 print("Number of elements:", number_elements)
 
 # materials: G[el] = [t, ctau, cn, mu]
-t   = 0.228   #[m]
-fcm = 2e6  #[Pa]
-ftx = 0.3e6  #[Pa]
-nu = 0.2
-
-# t   = 0.228   #[m] helstensvæg
+# t   = 0.228   #[m]
 # fcm = 2e6  #[Pa]
 # ftx = 0.3e6  #[Pa]
-# ftm = 0.2e6
 # nu = 0.2
-# fcl = 0.5 * fcm
-# phi_l_deg = 30
-# fcs = 0.5 * fcm
-# fce = 0.5 * fcm
-# fts = 0.1 * fcm
-# phi_s_deg = 30
-# alpha0_deg = 30
-# xi = 0.5
+
+
 
 
 G_base = np.array([[t, fcm, ftx, nu]])
