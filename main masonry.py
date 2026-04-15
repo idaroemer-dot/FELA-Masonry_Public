@@ -94,7 +94,7 @@ print("Number of elements:", number_elements)
 t   = 0.228   #[m] helstensvæg
 fcm = 2e6  #[Pa]
 ftx = 0.3e6  #[Pa]
-ftm = 0.2e6
+ftm = ftx
 nu = 0.2
 fcs = 0.5*fcm
 fce = 0.5*fcm
