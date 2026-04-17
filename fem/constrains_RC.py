@@ -50,8 +50,10 @@ def setcon(nel, G):
         for no in range(3):
             t  = G[el, 0]
             fc = G[el, 1]
-            phix = G[el, 2] * G[el, 3] / (G[el, 0] * G[el, 1])
-            phiy = G[el, 4] * G[el, 5] / (G[el, 0] * G[el, 1])
+            # phix = G[el, 2] * G[el, 3] / (G[el, 0] * G[el, 1])
+            # phiy = G[el, 4] * G[el, 5] / (G[el, 0] * G[el, 1])
+            phix = 0.075
+            phiy = 0.075
 
             Aseq, Aaeq, byeq, As, Aa, by = Ab_RC_ps(fc, phix, phiy)
 

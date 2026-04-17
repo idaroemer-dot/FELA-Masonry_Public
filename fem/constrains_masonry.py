@@ -94,7 +94,7 @@ def Ab_masonry_ps(ftx, fcm, nu, fcs, fce, xi, phi_s, fcl, phi_l, omega_max):
     # XI:   +/-tau_xy <= c0 - cx*sigma_x - cy*sigma_y
     # -------------------------------------------------
     As = np.array([
-        [ 0.0,  0.0,  0.0],   # I
+    #    [ 0.0,  0.0,  0.0],   # I
         [ 0.0,  0.0,  0.0],   # II
         [ 0.0,  0.0,  1.0],   # VIIIa
         [ 0.0,  0.0, -1.0],   # VIIIb
@@ -103,7 +103,7 @@ def Ab_masonry_ps(ftx, fcm, nu, fcs, fce, xi, phi_s, fcl, phi_l, omega_max):
     ], dtype=float)
 
     Aa = np.array([
-        [1.0, 0.0, 0.0,  1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0],  # I
+    #    [1.0, 0.0, 0.0,  1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0],  # I
         [1.0, 0.0, 0.0, -1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0],  # II
         [0.0, 0.0, 0.0,  0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0],  # VIIIa
         [0.0, 0.0, 0.0,  0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0],  # VIIIb
@@ -112,7 +112,7 @@ def Ab_masonry_ps(ftx, fcm, nu, fcs, fce, xi, phi_s, fcl, phi_l, omega_max):
     ], dtype=float)
 
     by = np.array([
-        ftx,
+    #    ftx,
         fcm,
         0.5 * nu * fcm,
         0.5 * nu * fcm,
@@ -142,7 +142,7 @@ def setcon_masonry(nel, G):
 
     na = 10
     neq = 9
-    nin = 6
+    nin = 5
     nr = neq + nin
 
     Ab  = lil_matrix((3 * nel * nr, 9 * nel + 1 + 3 * nel * na))
@@ -188,11 +188,11 @@ def setcon_masonry(nel, G):
                 "sub": cp_alfa + np.array([0, 1, 2])
             }
 
-            # # Cone 2: I -> 2*a5*a6 >= a7^2
-            # C[3 * (3 * el + no) + 1] = {
-            #     "type": "MSK_CT_RQUAD",
-            #     "sub": cp_alfa + np.array([4, 5, 6])
-            # }
+            # Cone 2: I -> 2*a5*a6 >= a7^2
+            C[3 * (3 * el + no) + 1] = {
+                "type": "MSK_CT_RQUAD",
+                "sub": cp_alfa + np.array([4, 5, 6])
+            }
 
             # Cone 3: X -> 2*a8*a9 >= a10^2
             C[3 * (3 * el + no) + 2] = {

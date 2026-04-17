@@ -9,8 +9,8 @@ import matplotlib.tri as mtri
 # --------------------------------------------------
 # Geometry: half model of the deep beam
 # --------------------------------------------------
-L = 6.0
-h = 2.0
+L = 0.757
+h = 0.457
 
 lenght = L/2      # half beam due to symmetry
 height = h
@@ -83,27 +83,23 @@ number_elements = elements_topology.shape[0]
 print("Number of nodes:", number_nodes)
 print("Number of elements:", number_elements)
 
-# --------------------------------------------------
-# Material data
-# Example text gives:
-# h = 2 m, L = 6 m, fc = 20 MPa, Phi = 0.075
-#
-# Phi = As*fy / (t*fc)
-# => As = Phi*t*fc/fy
-# --------------------------------------------------
-t = 0.2
-fc = 20e6
-Phi = 0.075
-fYx = 300e6
-fYy = 300e6
+# materials: G[el] = [t, ctau, cn, mu]
+# masonry
+t   = 0.054                     #[m]  thickness
+fcm = 8.60e6                    #[Pa] compressive strength
+ftx = 0.29e6                    #[Pa] tensile strength in x direction
+ftm = ftx                       #[Pa] tensile strength
+nu = 0.8                        # effectiveness factor for shear strength
+fcs = fcm                       #[Pa] compressive strength for the unit
+fce = fcs                       #[Pa] compressive strength for the head-joint
+xi = 0.5                        # relation between unit and head-joint area
+phi_s = np.deg2rad(36.87)        # friction angle of the unit
+fcl = 2.0e6                     #[Pa] compressive strength for the bed joint
+phi_l = np.deg2rad(45.0)       # friction angle of the bed joint
+omega_max = np.deg2rad(45.0)    # maximum angle related to staircase failure mechanism
 
-As = Phi * t * fc / fYx   # area per unit length
-Ax = As
-Ay = As
 
-print("Ax = Ay =", As)
-
-G_base = np.array([[t, fc, Ax, fYx, Ay, fYy]])
+G_base = np.array([[t, fcm, ftx, nu, fcs, fce, xi, phi_s, fcl, phi_l, omega_max]])
 G = np.tile(G_base, (number_elements, 1))
 
 # --------------------------------------------------
@@ -218,7 +214,6 @@ print("Collapse load intensity p* =", p_collapse/ (t* 1e6), "MPa")
 print("Collapse load intensity p* =", p_collapse/1000, "kN/m")
 print("Collapse load intensity p* =", 2 * p_collapse * lenght/1000, "kN")
 
-
 # --------------------------------------------------
 # Post-processing
 # --------------------------------------------------
@@ -226,4 +221,4 @@ from post.plot_principle_stress import plotPS
 plotPS(node_coordinates, elements_topology, x, number_elements, 1e-6)
 
 from post.plot_displacements import plotDof
-plotDof(node_coordinates, elements_topology, y, global_DOF_index_supports, number_elements, number_nodes, 1e3)
+plotDof(node_coordinates, elements_topology, y, global_DOF_index_supports, number_elements, number_nodes, 1e-2)
