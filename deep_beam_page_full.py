@@ -6,17 +6,15 @@ import math
 import pyvista
 import matplotlib.tri as mtri
 
-# --------------------------------------------------
-# Geometry: half model of the deep beam
-# --------------------------------------------------
+#---------Topology---------# 
 L = 0.757
 h = 0.457
 
-lenght = L/2      # half beam due to symmetry
+lenght = L      
 height = h
 
-nx = 4
-ny = 4
+nx = 16
+ny = 10
 
 a = (lenght/nx)/2
 b = (height/ny)/2
@@ -44,9 +42,7 @@ base_elements = np.array([
     [7, 13, 11, 12, 9, 10]
 ]) - 1
 
-# --------------------------------------------------
 # Mesh assembly
-# --------------------------------------------------
 all_elements = []
 node_dict = {}
 node_list = []
@@ -85,77 +81,94 @@ print("Number of elements:", number_elements)
 
 # materials: G[el] = [t, ctau, cn, mu]
 # masonry
-t   = 0.054                     #[m]  thickness
-fcm = 8.60e6                    #[Pa] compressive strength
-ftx = 0.29e6                    #[Pa] tensile strength in x direction
-ftm = ftx                       #[Pa] tensile strength
-nu = 0.8                        # effectiveness factor for shear strength
-fcs = fcm                       #[Pa] compressive strength for the unit
-fce = fcs                       #[Pa] compressive strength for the head-joint
-xi = 0.5                        # relation between unit and head-joint area
-phi_s = np.deg2rad(36.87)        # friction angle of the unit
-fcl = 2.0e6                     #[Pa] compressive strength for the bed joint
-phi_l = np.deg2rad(45.0)       # friction angle of the bed joint
-omega_max = np.deg2rad(45.0)    # maximum angle related to staircase failure mechanism
+t   = 0.054                         #[m]  thickness
+nu = 1                              # effectiveness factor for shear strength
+nu_t = 0.6                           #effectiveness factor for tensile strength (2013 Portioli)
+nu_c = 0.7 - 8.60/200                #effectiveness factor for compressive strength (2013 Portioli)
+xi = 0.5                            # relation between unit and head-joint area
+omega_max = np.deg2rad(50.0)        # maximum angle related to staircase failure mechanism
+fcm = 8.60e6 * nu_c                   #[Pa] compressive strength
 
+# joints
+ftx = 0.29e6 * nu_t                  #[Pa] tensile strength in x direction
+fce =  8.60e6 * nu_c                       #[Pa] compressive strength for the head-joint
+fcl =  fce                     #[Pa] compressive strength for the bed joint
+phi_l = np.arctan(0.75)           # friction angle of the bed joint 
+
+# units
+fcs = 30e6 * nu_c                      #[Pa] compressive strength for the unit
+phi_s = np.arctan(1.0)      # [rad] friction angle of the unit
 
 G_base = np.array([[t, fcm, ftx, nu, fcs, fce, xi, phi_s, fcl, phi_l, omega_max]])
 G = np.tile(G_base, (number_elements, 1))
 
-# --------------------------------------------------
-# Supports
-# Left boundary: symmetry => Ux = 0
-# Right boundary: shear support => Uy = 0 only on supported segment
-#
-# IMPORTANT:
-# y0 is the free top part on the support boundary.
-# I cannot read its exact value from your screenshot, so keep it as a parameter.
-# --------------------------------------------------
+# supports[i] = [node, direction]
 tol = 1e-10
-y0 = 0.25   # <-- set this to the benchmark value if you have it
+support_length = 0.188
+
+x_left_end  = support_length
+x_right_start = lenght - support_length
 
 supports = []
 
 for i, (x, y) in enumerate(node_coordinates):
+    if abs(y - 0.0) < tol:
 
-    # symmetry boundary at x = 0
-    if abs(x - 0.0) < tol:
-        supports.append([i, 0])   # Ux = 0
+        # LEFT support region
+        if x <= x_left_end + tol:
+            supports.append([i, 1])   # Uy = 0
+            supports.append([i, 0])   # Ux = 0
 
-    # shear support on right boundary, only for 0 <= y <= h - y0
-    if abs(x - lenght) < tol and y <= (height - y0 + tol):
-        supports.append([i, 1])   # Uy = 0
+        # RIGHT support region
+        elif x >= x_right_start - tol:
+            supports.append([i, 1])   # Uy = 0
+            supports.append([i, 0])   # Ux = 0
 
 supports = np.array(supports, dtype=int)
 print("Supports:\n", supports)
 
-# --------------------------------------------------
-# Loads
-# Uniform vertical load q on the top boundary only
-# Use trapezoidal nodal distribution
-# --------------------------------------------------
-q = 1.0   # reference load intensity [N/m]
+# loads[i] = [node, direction, magnitude]
+q = 1.0
 tol = 1e-10
-loads = []
+Ls = 0.381
 
+x_start = 0.1905
+x_end   = 0.5715
+
+# top nodes
 top_nodes = [i for i, (x, y) in enumerate(node_coordinates)
              if abs(y - height) < tol]
 top_nodes = sorted(top_nodes, key=lambda i: node_coordinates[i, 0])
 
-top_spacing = lenght / (len(top_nodes) - 1)
+# collect nodal loads in a dictionary
+nodal_loads = {}
 
-for k, i in enumerate(top_nodes):
-    weight = 0.5 if (k == 0 or k == len(top_nodes)-1) else 1.0
-    loads.append([i, 1, -q * top_spacing * weight])
+for k in range(len(top_nodes) - 1):
+    n1 = top_nodes[k]
+    n2 = top_nodes[k + 1]
 
-loads = np.array(loads, dtype=float)
+    x1, y1 = node_coordinates[n1]
+    x2, y2 = node_coordinates[n2]
+
+    # overlap between segment and loaded interval
+    xa = max(x1, x_start)
+    xb = min(x2, x_end)
+
+    if xb > xa:
+        Le = xb - xa
+        fnod = q * Le / 2.0
+
+        nodal_loads[n1] = nodal_loads.get(n1, 0.0) - fnod
+        nodal_loads[n2] = nodal_loads.get(n2, 0.0) - fnod
+
+# convert to load array
+loads = np.array([[node, 1, val] for node, val in sorted(nodal_loads.items())],
+                 dtype=float)
+
 print("Loads:\n", loads)
+print("Total applied load =", np.sum(loads[:, 2]))
 
-print("Total applied top load =", np.sum(loads[:, 2]))
-
-# --------------------------------------------------
 # Global setup
-# --------------------------------------------------
 from fem.assembly import setup_global_mapping
 number_nodes, number_elements, number_variabels, number_equations, variables_per_element, equations_per_element = setup_global_mapping(node_coordinates, elements_topology)
 
@@ -209,16 +222,18 @@ print("min sy =", np.min(sy_all))
 print("max sy =", np.max(sy_all))
 
 # collapse load corresponding to q
-p_collapse = lambda_val * q
-print("Collapse load intensity p* =", p_collapse/ (t* 1e6), "MPa")
-print("Collapse load intensity p* =", p_collapse/1000, "kN/m")
-print("Collapse load intensity p* =", 2 * p_collapse * lenght/1000, "kN")
+# collapse load corresponding to q
+p_collapse = lambda_val * q   # [N/m]
 
+P_total = p_collapse * Ls     # total load over loaded length
+
+print("Collapse load line intensity q* =", p_collapse/1000, "kN/m")
+print("Total collapse load on beam =", P_total/1000, "kN")
 # --------------------------------------------------
 # Post-processing
 # --------------------------------------------------
 from post.plot_principle_stress import plotPS
-plotPS(node_coordinates, elements_topology, x, number_elements, 1e-6)
+plotPS(node_coordinates, elements_topology, x, number_elements, 1e-7)
 
 from post.plot_displacements import plotDof
-plotDof(node_coordinates, elements_topology, y, global_DOF_index_supports, number_elements, number_nodes, 1e-2)
+plotDof(node_coordinates, elements_topology, y, global_DOF_index_supports, number_elements, number_nodes, 1e-3)

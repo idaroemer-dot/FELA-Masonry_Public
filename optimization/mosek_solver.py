@@ -2,18 +2,35 @@ import mosek
 import scipy.sparse as sp
 import numpy as np
 
-def solveopt(number_elements, global_equilibrium_reduced, global_load_vector_reduced, Ab, blc, buc, C):
+def solveopt(number_elements,
+             global_equilibrium_reduced,
+             global_load_const_reduced,
+             global_load_var_reduced,
+             Ab, blc, buc, C):
+
     # Total number of variables from Ab
     number_variables = Ab.shape[1]
 
     # Number of alpha variables
     n_alpha = number_variables - (9 * number_elements + 1)
 
-    # Top equilibrium block
+    # Number of equilibrium equations
     m = global_equilibrium_reduced.shape[0]
+
+    # Ensure correct shapes
+    R_const = np.asarray(global_load_const_reduced, dtype=float).reshape(-1)
+    R_var   = np.asarray(global_load_var_reduced, dtype=float).reshape(-1)
+
+    if len(R_const) != m:
+        raise ValueError(f"global_load_const_reduced has length {len(R_const)}, expected {m}")
+    if len(R_var) != m:
+        raise ValueError(f"global_load_var_reduced has length {len(R_var)}, expected {m}")
+
+    # Top equilibrium block:
+    # H*s - lambda*R_var = R_const
     A_top = sp.hstack([
         sp.csr_matrix(global_equilibrium_reduced),
-        sp.csr_matrix((-np.asarray(global_load_vector_reduced).reshape(-1, 1))),
+        sp.csr_matrix((-R_var).reshape(-1, 1)),
         sp.csr_matrix((m, n_alpha))
     ], format="csr")
 
@@ -21,13 +38,15 @@ def solveopt(number_elements, global_equilibrium_reduced, global_load_vector_red
     A = sp.vstack([A_top, sp.csr_matrix(Ab)], format="csr")
     number_constraints, number_variables = A.shape
 
-    # Full bounds
-    blc_full = np.concatenate([np.zeros(m), np.asarray(blc).ravel()])
-    buc_full = np.concatenate([np.zeros(m), np.asarray(buc).ravel()])
+    # Full bounds:
+    # equilibrium rows fixed to R_const
+    blc_full = np.concatenate([R_const, np.asarray(blc).ravel()])
+    buc_full = np.concatenate([R_const, np.asarray(buc).ravel()])
 
     # Objective: maximize lambda
     c = np.zeros(number_variables)
-    c[9 * number_elements] = 1.0
+    lambda_index = 9 * number_elements
+    c[lambda_index] = 1.0
 
     with mosek.Env() as env, env.Task() as task:
         task.set_Stream(mosek.streamtype.log, lambda msg: print(msg, end=""))
@@ -40,6 +59,10 @@ def solveopt(number_elements, global_equilibrium_reduced, global_load_vector_red
         # Variable bounds: free
         for j in range(number_variables):
             task.putvarbound(j, mosek.boundkey.fr, -inf, inf)
+
+        # Optional but often sensible:
+        # enforce lambda >= 0
+        task.putvarbound(lambda_index, mosek.boundkey.lo, 0.0, inf)
 
         # Objective
         nonzero_c = np.nonzero(c)[0]
@@ -80,7 +103,6 @@ def solveopt(number_elements, global_equilibrium_reduced, global_load_vector_red
             if cone_group is None:
                 continue
 
-            # Handle both old format (single dict) and new format (list of dicts)
             if isinstance(cone_group, dict):
                 cone_group = [cone_group]
 
@@ -93,10 +115,8 @@ def solveopt(number_elements, global_equilibrium_reduced, global_load_vector_red
 
                 if cone_type == "MSK_CT_QUAD":
                     task.appendcone(mosek.conetype.quad, 0.0, idx)
-
                 elif cone_type == "MSK_CT_RQUAD":
                     task.appendcone(mosek.conetype.rquad, 0.0, idx)
-
                 else:
                     raise ValueError(f"Unknown cone type: {cone_type}")
 
@@ -117,10 +137,10 @@ def solveopt(number_elements, global_equilibrium_reduced, global_load_vector_red
         task.getxx(mosek.soltype.itr, xx)
         task.gety(mosek.soltype.itr, yy)
 
-        lambda_val = xx[9 * number_elements]
+        lambda_val = xx[lambda_index]
 
-        x = xx[:(9 * number_elements + 1)]     # stress + lambda
-        alpha = xx[(9 * number_elements + 1):] # alle alpha-variabler
+        x = xx[:(9 * number_elements + 1)]      # stress + lambda
+        alpha = xx[(9 * number_elements + 1):]  # alpha variables
         y = yy[:m]
 
         return x, alpha, y, lambda_val

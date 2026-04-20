@@ -112,7 +112,7 @@ def Ab_masonry_ps(ftx, fcm, nu, fcs, fce, xi, phi_s, fcl, phi_l, omega_max):
     ], dtype=float)
 
     by = np.array([
-    #    ftx,
+     #   ftx,
         fcm,
         0.5 * nu * fcm,
         0.5 * nu * fcm,
@@ -194,7 +194,7 @@ def setcon_masonry(nel, G):
                 "sub": cp_alfa + np.array([4, 5, 6])
             }
 
-            # Cone 3: X -> 2*a8*a9 >= a10^2
+            #Cone 3: X -> 2*a8*a9 >= a10^2
             C[3 * (3 * el + no) + 2] = {
                 "type": "MSK_CT_RQUAD",
                 "sub": cp_alfa + np.array([7, 8, 9])
