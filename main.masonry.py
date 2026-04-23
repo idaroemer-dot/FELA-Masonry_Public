@@ -245,8 +245,8 @@ Ab, blc, buc, C = setcon_masonry(number_elements, G)
 # Ab, blc, buc, C = setcon_steel_vm(number_elements, G)
 
 #Optimize
-from optimization.mosek_solver import solveopt
-x, alpha, y, lambda_val = solveopt(number_elements, global_equilibrium_reduced, global_load_vector_reduced, Ab, blc, buc, C)
+from optimization.mosek_solver_RC import solveopt
+x, y, lambda_val = solveopt(number_elements, global_equilibrium_reduced, global_load_vector_reduced, Ab, blc, buc, C)
 
 sx_all = []
 sy_all = []
