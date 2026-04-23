@@ -23,19 +23,15 @@ def Ab_masonry_ps(ftx, fcm, nu, fcs, fce, xi, phi_s, fcl, phi_l, omega_max):
     ]
     """
 
-    # -------------------------------------------------
     # Parameters for X
-    # -------------------------------------------------
     ls = 1.0 - 2.0 * (ftx / fcs) * (np.sin(phi_s) / (1.0 - np.sin(phi_s)))
     ms = 1.0 - 2.0 * (ftx / fcs) * (1.0 / (1.0 - np.sin(phi_s)))
 
     Ax = 0.5 * fcs * xi * (ls - ms)
     Bx = 0.5 * fcs * xi * (ls + ms) + fce * (1.0 - xi)
 
-    # -------------------------------------------------
     # Parameters for XI
     # tau_xy <= c0 - cx*sigma_x - cy*sigma_y
-    # -------------------------------------------------
     den = np.cos(omega_max - phi_l)
     if abs(den) < 1e-12:
         raise ValueError("cos(omega_max - phi_l) is too close to zero.")
@@ -48,9 +44,7 @@ def Ab_masonry_ps(ftx, fcm, nu, fcs, fce, xi, phi_s, fcl, phi_l, omega_max):
     cx = (np.cos(phi_l) * np.sin(omega_max)) / den
     cy = (np.sin(phi_l) * np.cos(omega_max)) / den
 
-    # -------------------------------------------------
     # Equalities
-    # -------------------------------------------------
     Aseq = np.array([
         [ 0.0,  0.0, -1.0],            # a2 - tau_xy = 0
         [-0.5,  0.5,  0.0],            # a3 - 0.5*(sx-sy) = 0
@@ -87,12 +81,10 @@ def Ab_masonry_ps(ftx, fcm, nu, fcs, fce, xi, phi_s, fcl, phi_l, omega_max):
         0.0,
     ], dtype=float)
 
-    # -------------------------------------------------
     # Inequalities
     # II:   a1 - a4 <= fcm
     # VIII: |tau_xy| <= 0.5*nu*fcm
     # XI:   +/-tau_xy <= c0 - cx*sigma_x - cy*sigma_y
-    # -------------------------------------------------
     As = np.array([
     #    [ 0.0,  0.0,  0.0],   # I
         [ 0.0,  0.0,  0.0],   # II
@@ -139,7 +131,6 @@ def setcon_masonry(nel, G):
         omega_max
     ]
     """
-
     na = 10
     neq = 9
     nin = 5

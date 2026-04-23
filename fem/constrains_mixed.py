@@ -3,6 +3,7 @@ import numpy as np
 
 from fem.constrains_masonry import Ab_masonry_ps
 from fem.constrains_RC import Ab_RC_ps
+from fem.constrains_von_mises import Ab_steel_vm_ps
 
 
 def setcon_mixed(nel, G, mat_type):
@@ -13,6 +14,7 @@ def setcon_mixed(nel, G, mat_type):
         0 = masonry web
         1 = masonry flange
         2 = RC beam
+        3 = steel (von Mises, plane stress)
 
     Unified block sizes:
         na = 10
@@ -21,6 +23,7 @@ def setcon_mixed(nel, G, mat_type):
     Cones are appended dynamically:
         masonry -> 3 cones / GP
         RC      -> 1 cone  / GP
+        steel   -> 1 cone  / GP
     """
     na = 10
     nr = 14
@@ -59,6 +62,26 @@ def setcon_mixed(nel, G, mat_type):
                 C.append({
                     "type": "MSK_CT_QUAD",
                     "sub": cp_alfa + np.array([0, 3, 4])
+                })
+
+            # ---------------------------------
+            # Steel element: von Mises plane stress
+            # ---------------------------------
+            elif mat_type[el] == 3:
+                fy = G[el, 1]
+
+                Aseq, Aaeq, byeq, As, Aa, by = Ab_steel_vm_ps(fy)
+
+                Ab[r, slice(cp_beta, cp_beta + 3)] = np.vstack((Aseq / t, As))
+                Ab[r, slice(cp_alfa, cp_alfa + na)] = np.vstack((Aaeq, Aa))
+
+                blc[r] = np.concatenate((byeq, -np.inf * np.ones_like(by)))
+                buc[r] = np.concatenate((byeq, by))
+
+                # Cone: a0 >= sqrt(a1^2 + a2^2 + a3^2)
+                C.append({
+                    "type": "MSK_CT_QUAD",
+                    "sub": cp_alfa + np.array([0, 1, 2, 3])
                 })
 
             # ---------------------------------

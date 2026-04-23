@@ -121,6 +121,8 @@ fcx_flange_base = 9.5e6
 nu = 1.0
 nu_t = 0.6
 nu_c = 0.7 - 1.87 / 200
+#nu_t = 1.0
+#nu_c = 1.0
 xi = 0.5
 omega_max = np.deg2rad(50.0)
 
@@ -190,7 +192,7 @@ print("RC elements =", np.sum(mat_type == 2))
 print("Masonry flange elements =", np.sum(mat_type == 1))
 print("Masonry web elements =", np.sum(mat_type == 0))
 
-#---------Supports---------#
+# supports[i] = [node, direction]
 tol = 1e-10
 supports = []
 
@@ -210,7 +212,7 @@ print("Supports:\n", supports)
 print("Number of bottom nodes =", len(bottom_nodes))
 
 
-#---------Loads---------#
+# loads[i] = [node, direction, value]
 Fv_total = 415.0e3
 Fh_ref_total = 1.0
 
