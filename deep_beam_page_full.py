@@ -176,15 +176,7 @@ from post.plot_topology import plot_topology
 plotTop = plot_topology(node_coordinates, elements_topology, number_elements, number_nodes)
 
 from fem.equilibrium import global_equilibrium_matrix
-global_equilibrium = global_equilibrium_matrix(
-    node_coordinates,
-    elements_topology,
-    number_elements,
-    number_equations,
-    number_variabels,
-    equations_per_element,
-    variables_per_element
-)
+global_equilibrium = global_equilibrium_matrix(node_coordinates,elements_topology,number_elements,number_equations,number_variabels,equations_per_element,variables_per_element)
 
 from model.supports import setsup
 number_sup, global_DOF_index_supports, global_equilibrium_reduced = setsup(supports, global_equilibrium)
@@ -195,16 +187,10 @@ number_load, global_load_vector, global_load_vector_reduced = setload(2*number_n
 from fem.constrains_masonry import setcon_masonry
 Ab, blc, buc, C = setcon_masonry(number_elements, G)
 
-# --------------------------------------------------
+
 # Optimization
-# --------------------------------------------------
 from optimization.mosek_solver_RC import solveopt
-x, y, lambda_val = solveopt(
-    number_elements,
-    global_equilibrium_reduced,
-    global_load_vector_reduced,
-    Ab, blc, buc, C
-)
+x, y, lambda_val = solveopt(number_elements,global_equilibrium_reduced,global_load_vector_reduced,Ab, blc, buc, C)
 
 sx_all = []
 sy_all = []
@@ -222,16 +208,14 @@ print("min sy =", np.min(sy_all))
 print("max sy =", np.max(sy_all))
 
 # collapse load corresponding to q
-# collapse load corresponding to q
 p_collapse = lambda_val * q   # [N/m]
 
 P_total = p_collapse * Ls     # total load over loaded length
 
 print("Collapse load line intensity q* =", p_collapse/1000, "kN/m")
 print("Total collapse load on beam =", P_total/1000, "kN")
-# --------------------------------------------------
+
 # Post-processing
-# --------------------------------------------------
 from post.plot_principle_stress import plotPS
 plotPS(node_coordinates, elements_topology, x, number_elements, 1e-7)
 

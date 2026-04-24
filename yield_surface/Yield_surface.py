@@ -6,7 +6,7 @@ params = {
     # -------- basic strengths --------
     "ftx": 0.32,                  # MPa
     "fcm": 7.56,                  # MPa, used in surface II
-    "nu": 1,                      # VIII
+    "nu": 0.6,                      # VIII
 
     # -------- surface X --------
     "fcs": 15.41,                 # MPa
@@ -18,7 +18,7 @@ params = {
     # -------- surface XI --------
     "fcl": 2.40,                  # MPa
     "phi_l": np.deg2rad(30.0),    # rad
-    "omega_max": np.deg2rad(30.0) # rad
+    "omega_max": np.deg2rad(24.0) # rad
 }
 
 # Pages data for plotting
@@ -343,5 +343,5 @@ def plot_all():
 if __name__ == "__main__":
     plot_all()
 
-# if __name__ == "__main__":
-#     plot_region_diagnostics(theta=45.0)
+if __name__ == "__main__":
+    plot_region_diagnostics(theta=45.0)
