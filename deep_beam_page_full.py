@@ -1,5 +1,4 @@
 from matplotlib import scale
-import pygmsh
 import numpy as np
 import matplotlib.pyplot as plt
 import math
