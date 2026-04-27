@@ -5,11 +5,20 @@ venv/
 # Python cache
 __pycache__/
 *.pyc
+*.pyo
+*.pyd
 
 # OS / editor
 .DS_Store
 .vscode/
 
-# Data / output (valgfrit)
+# Logs / temp
 *.log
 *.tmp
+
+# Mesh / FEM / output (MEGET relevant for dig)
+*.vtk
+*.vtu
+*.msh
+*.h5
+*.xdmf

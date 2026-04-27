@@ -1,11 +1,7 @@
-from turtle import left
 
 from matplotlib import scale
-import pygmsh
 import numpy as np
 import matplotlib.pyplot as plt
-import math
-import pyvista
 import matplotlib.tri as mtri
 #---------Topology---------# 
 lenght = 6
