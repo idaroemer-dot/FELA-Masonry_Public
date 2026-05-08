@@ -1,14 +1,13 @@
-
-from matplotlib import scale
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.tri as mtri
-#---------Topology---------# 
-lenght = 6
-height = 6
 
-nx = 12
-ny = 12
+# topology
+lenght = 0.757      
+height = 0.457
+
+nx = 16
+ny = 10
 
 a = (lenght/nx)/2
 b = (height/ny)/2
@@ -36,37 +35,13 @@ base_elements = np.array([
     [7, 13, 11, 12, 9, 10]
 ]) - 1
 
-cell_w = 2*a   # 0.5
-cell_h = 2*b   # 0.5
-
-# openings: (x_left, x_right, y_bottom, y_top)
-openings_xy = [
-    (1.0, 2.0, 4.0, 5.0),   # upper left window
-    (3.5, 5.0, 4.0, 5.0),   # upper right window
-    (1.0, 2.0, 0.0, 2.0),   # door
-    (3.5, 5.0, 1.0, 2.0)    # lower middle opening
-]
-
-def cell_is_in_opening(i, j):
-    x0 = i * cell_w
-    x1 = (i + 1) * cell_w
-    y0 = j * cell_h
-    y1 = (j + 1) * cell_h
-
-    for ox0, ox1, oy0, oy1 in openings_xy:
-        if x0 >= ox0 and x1 <= ox1 and y0 >= oy0 and y1 <= oy1:
-            return True
-    return False
-
+# mesh assembly
 all_elements = []
 node_dict = {}
 node_list = []
 
 for i in range(nx):
     for j in range(ny):
-
-        if cell_is_in_opening(i, j):
-            continue
 
         shift = np.array([2*a*i, 2*b*j])
         shifted_nodes = base_nodes + shift
@@ -75,14 +50,12 @@ for i in range(nx):
 
         for node in shifted_nodes:
             key = tuple(np.round(node, 10))
-
             if key in node_dict:
                 global_index = node_dict[key]
             else:
                 global_index = len(node_list)
                 node_dict[key] = global_index
                 node_list.append(node)
-
             local_to_global.append(global_index)
 
         local_to_global = np.array(local_to_global)
@@ -99,150 +72,119 @@ number_elements = elements_topology.shape[0]
 print("Number of nodes:", number_nodes)
 print("Number of elements:", number_elements)
 
-# materials: G[el] = [t, ctau, cn, mu]
+# materials: G[el] = [t, ctau, cn, mu....]
 # masonry
-t   = 0.228   #[m] helstensvæg
-fcm = 2e6  #[Pa]
-ftx = 0.3e6  #[Pa]
-ftm = ftx
-nu = 0.2
-fcs = 0.5*fcm
-fce = 0.5*fcm
-xi = 0.5
-phi_s = np.deg2rad(30.0)
-fcl = 0.5*fcm
-phi_l = np.deg2rad(30.0)
-omega_max = np.deg2rad(45.0) 
+t   = 0.054                             #[m]  thickness
+nu_t = 0.6                              # effectiveness factor for tensile strength 
+nu_c = 0.7 - 8.60/200                   # effectiveness factor for compressive strength
+xi = 0.5                                # relation between unit and head-joint area
+omega_max = np.deg2rad(24.0)            # maximum angle related to staircase failure mechanism
+fcm = 8.60e6 * nu_c                     #[Pa] compressive strength
 
+# joints
+ftx = 0.29e6 * nu_t                     #[Pa] tensile strength in x direction
+fce =  8.60e6 * nu_c                    #[Pa] compressive strength for the head-joint
+fcl =  fce                              #[Pa] compressive strength for the bed joint
+phi_l = np.arctan(0.75)                 #[rad] friction "angle" of the bed joint 
+#phi_l = np.rad2deg(30) 
 
-#steel
-t_steel   = 0.01   #[m] thickness
-fy_steel  = 250e6 #[Pa] yield strength
+# units
+fcs = 30e6 * nu_c                       #[Pa] compressive strength for the unit
+fts = 0.29e6 * nu_t                     #[Pa] tensile strength for the unit
+phi_s = np.arctan(1.0)                  #[rad] friction angle of the unit
 
-G_base = np.array([[t, fcm, ftx, nu, fcs, fce, xi, phi_s, fcl, phi_l, omega_max]])
+G_base = np.array([[t, fcm, ftx, nu_c, fcs, fts, fce, xi, phi_s, fcl, phi_l, omega_max]])
 G = np.tile(G_base, (number_elements, 1))
-
 
 # supports[i] = [node, direction]
 tol = 1e-10
+support_length = 0.188
+
+x_left_end  = support_length
+x_right_start = lenght - support_length
+
 supports = []
 
 for i, (x, y) in enumerate(node_coordinates):
     if abs(y - 0.0) < tol:
-        supports.append([i, 1])   # Uy = 0 on bottom
-        supports.append([i, 0])   # Ux = 0 on bottom
 
-# fix one x-DOF to avoid rigid body motion
-# for i, (x, y) in enumerate(node_coordinates):
-#     if abs(x - 0.0) < tol and abs(y - 0.0) < tol:
-#         supports.append([i, 0])   # Ux = 0 at bottom-left corner
-#         break        
+        # left support region
+        if x <= x_left_end + tol:
+            supports.append([i, 1])   # Uy = 0
+            supports.append([i, 0])   # Ux = 0
+
+        # right support region
+        elif x >= x_right_start - tol:
+            supports.append([i, 1])   # Uy = 0
+            supports.append([i, 0])   # Ux = 0
 
 supports = np.array(supports, dtype=int)
+print("Supports:\n", supports)
 
-print(supports)
 
-# loads[i] = [node, direction, value]
-# f=100
-# tol = 1e-10
-# loads = []
-
-# # find all nodes on top boundary
-# top_nodes = [i for i, (x, y) in enumerate(node_coordinates)
-#              if abs(y - height) < tol]
-
-# # total load F_total
-# F_total = f
-
-# # distribute evenly
-# for i in top_nodes:
-#     loads.append([i, 1, -F_total / len(top_nodes)])
-
-# loads = np.array(loads, dtype=float)
-
-# print(loads)
-q = 1000
-lam_ref = 0.5
-p = lam_ref * q
-p_left = p 
-p_right = p
-print("p =", p)
-
+# loads[i] = [node, direction, magnitude]
+q = 1.0
 tol = 1e-10
-loads = []
+Ls = 0.381
 
-# ---- top boundary nodes ----
+x_start = 0.1905
+x_end   = 0.5715
+
+# top nodes
 top_nodes = [i for i, (x, y) in enumerate(node_coordinates)
              if abs(y - height) < tol]
 top_nodes = sorted(top_nodes, key=lambda i: node_coordinates[i, 0])
 
-# ---- left boundary nodes ----
-left_nodes = [i for i, (x, y) in enumerate(node_coordinates)
-              if abs(x - 0.0) < tol
-             # and y >= 0.8*height
-             ]
-left_nodes = sorted(left_nodes, key=lambda i: node_coordinates[i, 1])
+# collect nodal loads in a dictionary
+nodal_loads = {}
 
-# ---- right boundary nodes ----
-right_nodes = [i for i, (x, y) in enumerate(node_coordinates)
-               if abs(x - lenght) < tol]
-right_nodes = sorted(right_nodes, key=lambda i: node_coordinates[i, 1])
+for k in range(len(top_nodes) - 1):
+    n1 = top_nodes[k]
+    n2 = top_nodes[k + 1]
 
+    x1, y1 = node_coordinates[n1]
+    x2, y2 = node_coordinates[n2]
 
-# nodal forces from line loads using trapezoidal rule
-top_spacing = lenght / (len(top_nodes) - 1)
-left_spacing = height / (len(left_nodes) - 1)
-right_spacing = height / (len(right_nodes) - 1)
+    # overlap between segment and loaded interval
+    xa = max(x1, x_start)
+    xb = min(x2, x_end)
 
-#top load q downward
-for k, i in enumerate(top_nodes):
-    weight = 0.5 if (k == 0 or k == len(top_nodes)-1) else 1.0
-    loads.append([i, 1, -q * top_spacing * weight])
+    if xb > xa:
+        Le = xb - xa
+        fnod = q * Le / 2.0
 
-#left load p to the right
-for k, i in enumerate(left_nodes):
-    weight = 0.5 if (k == 0 or k == len(left_nodes)-1) else 1.0
-    loads.append([i, 0, p_left * left_spacing * weight])
+        nodal_loads[n1] = nodal_loads.get(n1, 0.0) - fnod
+        nodal_loads[n2] = nodal_loads.get(n2, 0.0) - fnod
 
-# #right load p to the right
-# for k, i in enumerate(right_nodes):
-#     weight = 0.5 if (k == 0 or k == len(right_nodes)-1) else 1.0
-#     loads.append([i, 0, p_right * right_spacing * weight])
+# convert to load array
+loads = np.array([[node, 1, val] for node, val in sorted(nodal_loads.items())],
+                 dtype=float)
 
-loads = np.array(loads, dtype=float)
+print("Loads:\n", loads)
+print("Total applied load =", np.sum(loads[:, 2]))
 
-print(loads)
-#Setup global mapping
+# global setup
 from fem.assembly import setup_global_mapping
 number_nodes, number_elements, number_variabels, number_equations, variables_per_element, equations_per_element = setup_global_mapping(node_coordinates, elements_topology)
 
-#Plot geometry
 from post.plot_topology import plot_topology
 plotTop = plot_topology(node_coordinates, elements_topology, number_elements, number_nodes)
 
-#Establish equilibrium matrix
 from fem.equilibrium import global_equilibrium_matrix
-global_equilibrium = global_equilibrium_matrix(node_coordinates, elements_topology, number_elements, number_equations, number_variabels, equations_per_element, variables_per_element)
+global_equilibrium = global_equilibrium_matrix(node_coordinates,elements_topology,number_elements,number_equations,number_variabels,equations_per_element,variables_per_element)
 
-#Set supports
 from model.supports import setsup
 number_sup, global_DOF_index_supports, global_equilibrium_reduced = setsup(supports, global_equilibrium)
 
-#Set loads 
 from model.loads import setload
 number_load, global_load_vector, global_load_vector_reduced = setload(2*number_nodes, global_DOF_index_supports, loads)
 
-#Set constraints
 from fem.constrains_masonry import setcon_masonry
 Ab, blc, buc, C = setcon_masonry(number_elements, G)
 
-#Set constraints steel von Mises
-# from fem.constrains_von_mises import setcon_steel_vm
-# Ab, blc, buc, C = setcon_steel_vm(number_elements, G)
-
-#Optimize
+# optimization
 from optimization.mosek_solver_RC import solveopt
-x, y, lambda_val = solveopt(number_elements, global_equilibrium_reduced, global_load_vector_reduced, Ab, blc, buc, C)
+x, y, lambda_val = solveopt(number_elements,global_equilibrium_reduced,global_load_vector_reduced,Ab, blc, buc, C)
 
 sx_all = []
 sy_all = []
@@ -259,13 +201,15 @@ print("lambda =", lambda_val)
 print("min sy =", np.min(sy_all))
 print("max sy =", np.max(sy_all))
 
+# collapse load corresponding to q
+p_collapse = lambda_val * q   # [N/m]
+P_total = p_collapse * Ls     # total load over loaded length
+print("Collapse load line intensity q* =", p_collapse/1000, "kN/m")
+print("Total collapse load on beam =", P_total/1000, "kN")
 
-#Plot principal stresses
+# post-processing
 from post.plot_principle_stress import plotPS
-plotPS(node_coordinates, elements_topology, x, number_elements, 1e-6)
+plotPS(node_coordinates, elements_topology, x, number_elements, 1e-7)
 
-#Plot displacements 
 from post.plot_displacements import plotDof
-plotDof(node_coordinates, elements_topology, y, global_DOF_index_supports, number_elements, number_nodes,1e3)
-
-
+plotDof(node_coordinates, elements_topology, y, global_DOF_index_supports, number_elements, number_nodes, 1e-3)

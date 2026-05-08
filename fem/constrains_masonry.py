@@ -1,7 +1,7 @@
 from scipy.sparse import lil_matrix
 import numpy as np
 
-def Ab_masonry_ps(ftx, fcm, nu, fcs, fce, xi, phi_s, fcl, phi_l, omega_max):
+def Ab_masonry_ps(ftx, fcm, nu, fcs, fts, fce, xi, phi_s, fcl, phi_l, omega_max):
     """
     Local variables per constitutive point:
 
@@ -23,14 +23,14 @@ def Ab_masonry_ps(ftx, fcm, nu, fcs, fce, xi, phi_s, fcl, phi_l, omega_max):
     ]
     """
 
-    # Parameters for X
+    # parameters for X
     ls = 1.0 - 2.0 * (ftx / fcs) * (np.sin(phi_s) / (1.0 - np.sin(phi_s)))
     ms = 1.0 - 2.0 * (ftx / fcs) * (1.0 / (1.0 - np.sin(phi_s)))
 
     Ax = 0.5 * fcs * xi * (ls - ms)
     Bx = 0.5 * fcs * xi * (ls + ms) + fce * (1.0 - xi)
 
-    # Parameters for XI
+    # parameters for XI
     # tau_xy <= c0 - cx*sigma_x - cy*sigma_y
     den = np.cos(omega_max - phi_l)
     if abs(den) < 1e-12:
@@ -44,7 +44,7 @@ def Ab_masonry_ps(ftx, fcm, nu, fcs, fce, xi, phi_s, fcl, phi_l, omega_max):
     cx = (np.cos(phi_l) * np.sin(omega_max)) / den
     cy = (np.sin(phi_l) * np.cos(omega_max)) / den
 
-    # Equalities
+    # equalities
     Aseq = np.array([
         [ 0.0,  0.0, -1.0],            # a2 - tau_xy = 0
         [-0.5,  0.5,  0.0],            # a3 - 0.5*(sx-sy) = 0
@@ -81,7 +81,7 @@ def Ab_masonry_ps(ftx, fcm, nu, fcs, fce, xi, phi_s, fcl, phi_l, omega_max):
         0.0,
     ], dtype=float)
 
-    # Inequalities
+    # inequalities
     # II:   a1 - a4 <= fcm
     # VIII: |tau_xy| <= 0.5*nu*fcm
     # XI:   +/-tau_xy <= c0 - cx*sigma_x - cy*sigma_y
@@ -95,7 +95,6 @@ def Ab_masonry_ps(ftx, fcm, nu, fcs, fce, xi, phi_s, fcl, phi_l, omega_max):
     ], dtype=float)
 
     Aa = np.array([
-    #    [1.0, 0.0, 0.0,  1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0],  # I
         [1.0, 0.0, 0.0, -1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0],  # II
         [0.0, 0.0, 0.0,  0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0],  # VIIIa
         [0.0, 0.0, 0.0,  0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0],  # VIIIb
@@ -104,7 +103,6 @@ def Ab_masonry_ps(ftx, fcm, nu, fcs, fce, xi, phi_s, fcl, phi_l, omega_max):
     ], dtype=float)
 
     by = np.array([
-     #   ftx,
         fcm,
         0.5 * nu * fcm,
         0.5 * nu * fcm,
@@ -114,7 +112,6 @@ def Ab_masonry_ps(ftx, fcm, nu, fcs, fce, xi, phi_s, fcl, phi_l, omega_max):
 
     return Aseq, Aaeq, byeq, As, Aa, by
 
-
 def setcon_masonry(nel, G):
     """
     G[el,:] = [
@@ -123,6 +120,7 @@ def setcon_masonry(nel, G):
         ftx,
         nu,
         fcs,
+        fts,
         fce,
         xi,
         phi_s,
@@ -150,15 +148,16 @@ def setcon_masonry(nel, G):
             ftx       = G[el, 2]
             nu        = G[el, 3]
             fcs       = G[el, 4]
-            fce       = G[el, 5]
-            xi        = G[el, 6]
-            phi_s     = G[el, 7]
-            fcl       = G[el, 8]
-            phi_l     = G[el, 9]
-            omega_max = G[el,10]
+            fts       = G[el, 5]
+            fce       = G[el, 6]
+            xi        = G[el, 7]
+            phi_s     = G[el, 8]
+            fcl       = G[el, 9]
+            phi_l     = G[el, 10]
+            omega_max = G[el, 11]
 
             Aseq, Aaeq, byeq, As, Aa, by = Ab_masonry_ps(
-                ftx, fcm, nu, fcs, fce, xi, phi_s, fcl, phi_l, omega_max
+                ftx, fcm, nu, fcs, fts, fce, xi, phi_s, fcl, phi_l, omega_max
             )
 
             rp = (3 * el + no) * nr

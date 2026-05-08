@@ -8,16 +8,16 @@ def solveopt(number_elements,
              global_load_var_reduced,
              Ab, blc, buc, C):
 
-    # Total number of variables from Ab
+    # total number of variables from Ab
     number_variables = Ab.shape[1]
 
-    # Number of alpha variables
+    # number of alpha variables
     n_alpha = number_variables - (9 * number_elements + 1)
 
-    # Number of equilibrium equations
+    # number of equilibrium equations
     m = global_equilibrium_reduced.shape[0]
 
-    # Ensure correct shapes
+    # ensure correct shapes
     R_const = np.asarray(global_load_const_reduced, dtype=float).reshape(-1)
     R_var   = np.asarray(global_load_var_reduced, dtype=float).reshape(-1)
 
@@ -26,7 +26,7 @@ def solveopt(number_elements,
     if len(R_var) != m:
         raise ValueError(f"global_load_var_reduced has length {len(R_var)}, expected {m}")
 
-    # Top equilibrium block:
+    # top equilibrium block:
     # H*s - lambda*R_var = R_const
     A_top = sp.hstack([
         sp.csr_matrix(global_equilibrium_reduced),
@@ -34,16 +34,16 @@ def solveopt(number_elements,
         sp.csr_matrix((m, n_alpha))
     ], format="csr")
 
-    # Full constraint matrix
+    # full constraint matrix
     A = sp.vstack([A_top, sp.csr_matrix(Ab)], format="csr")
     number_constraints, number_variables = A.shape
 
-    # Full bounds:
+    # full bounds:
     # equilibrium rows fixed to R_const
     blc_full = np.concatenate([R_const, np.asarray(blc).ravel()])
     buc_full = np.concatenate([R_const, np.asarray(buc).ravel()])
 
-    # Objective: maximize lambda
+    # objective: maximize lambda
     c = np.zeros(number_variables)
     lambda_index = 9 * number_elements
     c[lambda_index] = 1.0
@@ -56,21 +56,21 @@ def solveopt(number_elements,
 
         inf = 1e30
 
-        # Variable bounds: free
+        # variable bounds: free
         for j in range(number_variables):
             task.putvarbound(j, mosek.boundkey.fr, -inf, inf)
 
-        # Optional but often sensible:
+        # optional but often sensible:
         # enforce lambda >= 0
         task.putvarbound(lambda_index, mosek.boundkey.lo, 0.0, inf)
 
-        # Objective
+        # objective
         nonzero_c = np.nonzero(c)[0]
         for j in nonzero_c:
             task.putcj(int(j), float(c[j]))
         task.putobjsense(mosek.objsense.maximize)
 
-        # Constraint bounds
+        # constraint bounds
         for i in range(number_constraints):
             lo = blc_full[i]
             up = buc_full[i]
@@ -90,7 +90,7 @@ def solveopt(number_elements,
             else:
                 task.putconbound(i, mosek.boundkey.fr, -inf, inf)
 
-        # Sparse A matrix
+        # sparse A matrix
         Acoo = A.tocoo()
         task.putaijlist(
             Acoo.row.astype(int),
@@ -98,7 +98,7 @@ def solveopt(number_elements,
             Acoo.data.astype(float)
         )
 
-        # Cones
+        # cones
         for cone_group in C:
             if cone_group is None:
                 continue
@@ -120,7 +120,7 @@ def solveopt(number_elements,
                 else:
                     raise ValueError(f"Unknown cone type: {cone_type}")
 
-        # Solve
+        # solve
         task.optimize()
         solsta = task.getsolsta(mosek.soltype.itr)
 
