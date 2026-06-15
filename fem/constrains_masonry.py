@@ -1,37 +1,26 @@
-from scipy.sparse import lil_matrix
 import numpy as np
+from scipy.sparse import lil_matrix
 
-def Ab_masonry_ps(ftx, fcm, nu, fcs, fts, fce, xi, phi_s, fcl, phi_l, omega_max):
-    """
-    Local variables per constitutive point:
 
-    beta = [sigma_x, sigma_y, tau_xy]
+def Ab_masonry_ps(
+    ftx, fcm, nu, fcs, fts, fce, xi,
+    phi_s, fcl, phi_l, omega_max,
+    ix_mode="A17",
+):
+    ix_mode = ix_mode.upper()
+    if ix_mode not in ("A17", "A18"):
+        raise ValueError("ix_mode must be 'A17' or 'A18'.")
 
-    alpha = [
-        a1,    # 0: R
-        a2,    # 1: tau_xy
-        a3,    # 2: 0.5*(sigma_x - sigma_y)
-        a4,    # 3: 0.5*(sigma_x + sigma_y)
+    s2 = np.sqrt(2.0)
 
-        a5,    # 4: ftx - sigma_x
-        a6,    # 5: -sigma_y
-        a7,    # 6: sqrt(2)*tau_xy   (for I)
-
-        a8,    # 7: A_x - sigma_x
-        a9,    # 8: B_x + sigma_x
-        a10    # 9: sqrt(2)*tau_xy   (for X)
-    ]
-    """
-
-    # parameters for X
-    ls = 1.0 - 2.0 * (ftx / fcs) * (np.sin(phi_s) / (1.0 - np.sin(phi_s)))
-    ms = 1.0 - 2.0 * (ftx / fcs) * (1.0 / (1.0 - np.sin(phi_s)))
+    # head-joint parameters
+    ls = 1.0 - 2.0 * (fts / fcs) * np.sin(phi_s) / (1.0 - np.sin(phi_s))
+    ms = 1.0 - 2.0 * (fts / fcs) / (1.0 - np.sin(phi_s))
 
     Ax = 0.5 * fcs * xi * (ls - ms)
     Bx = 0.5 * fcs * xi * (ls + ms) + fce * (1.0 - xi)
 
-    # parameters for XI
-    # tau_xy <= c0 - cx*sigma_x - cy*sigma_y
+    # staircase failure, written as: |tau_xy| <= c0 - cx*sigma_x - cy*sigma_y
     den = np.cos(omega_max - phi_l)
     if abs(den) < 1e-12:
         raise ValueError("cos(omega_max - phi_l) is too close to zero.")
@@ -41,33 +30,45 @@ def Ab_masonry_ps(ftx, fcm, nu, fcs, fts, fce, xi, phi_s, fcl, phi_l, omega_max)
         + 0.5 * fce * (1.0 - np.cos(phi_l)) * np.sin(omega_max)
     ) / den
 
-    cx = (np.cos(phi_l) * np.sin(omega_max)) / den
-    cy = (np.sin(phi_l) * np.cos(omega_max)) / den
+    cx = np.cos(phi_l) * np.sin(omega_max) / den
+    cy = np.sin(phi_l) * np.cos(omega_max) / den
 
-    # equalities
+    # linear bed-joint version
+    cos_phi_l = np.cos(phi_l)
+    if ix_mode == "A18" and abs(cos_phi_l) < 1e-12:
+        raise ValueError("cos(phi_l) is too close to zero.")
+
+    tan_phi_l = np.tan(phi_l)
+    c_ix = 0.5 * fcl * (1.0 - np.sin(phi_l)) / cos_phi_l
+
     Aseq = np.array([
-        [ 0.0,  0.0, -1.0],            # a2 - tau_xy = 0
-        [-0.5,  0.5,  0.0],            # a3 - 0.5*(sx-sy) = 0
-        [-0.5, -0.5,  0.0],            # a4 - 0.5*(sx+sy) = 0
-        [ 1.0,  0.0,  0.0],            # a5 + sx = ftx
-        [ 0.0,  1.0,  0.0],            # a6 + sy = 0
-        [ 0.0,  0.0,  np.sqrt(2.0)],   # -a7 + sqrt(2)*tau_xy = 0
-        [ 1.0,  0.0,  0.0],            # a8 + sx = Ax
-        [-1.0,  0.0,  0.0],            # a9 - sx = Bx
-        [ 0.0,  0.0,  np.sqrt(2.0)],   # -a10 + sqrt(2)*tau_xy = 0
+        [ 0.0,  0.0, -1.0],
+        [-0.5,  0.5,  0.0],
+        [-0.5, -0.5,  0.0],
+        [ 1.0,  0.0,  0.0],
+        [ 0.0,  1.0,  0.0],
+        [ 0.0,  0.0,  s2 ],
+        [ 1.0,  0.0,  0.0],
+        [-1.0,  0.0,  0.0],
+        [ 0.0,  0.0,  s2 ],
+        [ 0.0, -0.5,  0.0],
+        [ 0.0, -1.0,  0.0],
+        [ 0.0,  0.0, -1.0],
     ], dtype=float)
 
-    Aaeq = np.array([
-        [0.0, 1.0, 0.0, 0.0, 0.0, 0.0,  0.0, 0.0, 0.0,  0.0],  # a2
-        [0.0, 0.0, 1.0, 0.0, 0.0, 0.0,  0.0, 0.0, 0.0,  0.0],  # a3
-        [0.0, 0.0, 0.0, 1.0, 0.0, 0.0,  0.0, 0.0, 0.0,  0.0],  # a4
-        [0.0, 0.0, 0.0, 0.0, 1.0, 0.0,  0.0, 0.0, 0.0,  0.0],  # a5
-        [0.0, 0.0, 0.0, 0.0, 0.0, 1.0,  0.0, 0.0, 0.0,  0.0],  # a6
-        [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, -1.0, 0.0, 0.0,  0.0],  # -a7
-        [0.0, 0.0, 0.0, 0.0, 0.0, 0.0,  0.0, 1.0, 0.0,  0.0],  # a8
-        [0.0, 0.0, 0.0, 0.0, 0.0, 0.0,  0.0, 0.0, 1.0,  0.0],  # a9
-        [0.0, 0.0, 0.0, 0.0, 0.0, 0.0,  0.0, 0.0, 0.0, -1.0],  # -a10
-    ], dtype=float)
+    Aaeq = np.zeros((12, 13), dtype=float)
+    Aaeq[0, 1] = 1.0
+    Aaeq[1, 2] = 1.0
+    Aaeq[2, 3] = 1.0
+    Aaeq[3, 4] = 1.0
+    Aaeq[4, 5] = 1.0
+    Aaeq[5, 6] = -1.0
+    Aaeq[6, 7] = 1.0
+    Aaeq[7, 8] = 1.0
+    Aaeq[8, 9] = -1.0
+    Aaeq[9, 10] = 1.0
+    Aaeq[10, 11] = -1.0
+    Aaeq[11, 12] = 1.0
 
     byeq = np.array([
         0.0,
@@ -79,115 +80,128 @@ def Ab_masonry_ps(ftx, fcm, nu, fcs, fts, fce, xi, phi_s, fcl, phi_l, omega_max)
         Ax,
         Bx,
         0.0,
+        0.5 * fcl,
+        0.0,
+        0.0,
     ], dtype=float)
 
-    # inequalities
-    # II:   a1 - a4 <= fcm
-    # VIII: |tau_xy| <= 0.5*nu*fcm
-    # XI:   +/-tau_xy <= c0 - cx*sigma_x - cy*sigma_y
-    As = np.array([
-    #    [ 0.0,  0.0,  0.0],   # I
-        [ 0.0,  0.0,  0.0],   # II
-        [ 0.0,  0.0,  1.0],   # VIIIa
-        [ 0.0,  0.0, -1.0],   # VIIIb
-        [ cx,   cy,   1.0],   # XIa
-        [ cx,   cy,  -1.0],   # XIb
-    ], dtype=float)
-
-    Aa = np.array([
-        [1.0, 0.0, 0.0, -1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0],  # II
-        [0.0, 0.0, 0.0,  0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0],  # VIIIa
-        [0.0, 0.0, 0.0,  0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0],  # VIIIb
-        [0.0, 0.0, 0.0,  0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0],  # XIa
-        [0.0, 0.0, 0.0,  0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0],  # XIb
-    ], dtype=float)
-
-    by = np.array([
-        fcm,
-        0.5 * nu * fcm,
-        0.5 * nu * fcm,
-        c0,
-        c0,
-    ], dtype=float)
-
-    return Aseq, Aaeq, byeq, As, Aa, by
-
-def setcon_masonry(nel, G):
-    """
-    G[el,:] = [
-        t,
-        fcm,
-        ftx,
-        nu,
-        fcs,
-        fts,
-        fce,
-        xi,
-        phi_s,
-        fcl,
-        phi_l,
-        omega_max
+    As_rows = [
+        [0.0, 0.0,  0.0],       # II
+        [0.0, 0.0,  1.0],       # VIII
+        [0.0, 0.0, -1.0],       # VIII
+        [cx,  cy,   1.0],       # XI
+        [cx,  cy,  -1.0],       # XI
     ]
-    """
-    na = 10
-    neq = 9
-    nin = 5
-    nr = neq + nin
 
-    Ab  = lil_matrix((3 * nel * nr, 9 * nel + 1 + 3 * nel * na))
+    Aa_rows = [
+        [1.0, 0.0, 0.0, -1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
+        [0.0] * 13,
+        [0.0] * 13,
+        [0.0] * 13,
+        [0.0] * 13,
+    ]
+
+    by = [
+        fcm,
+        0.5 * nu * fcm,
+        0.5 * nu * fcm,
+        c0,
+        c0,
+    ]
+
+    if ix_mode == "A18":
+        As_rows += [
+            [0.0, tan_phi_l,  1.0],
+            [0.0, tan_phi_l, -1.0],
+        ]
+        Aa_rows += [
+            [0.0] * 13,
+            [0.0] * 13,
+        ]
+        by += [c_ix, c_ix]
+
+    return (
+        Aseq,
+        Aaeq,
+        byeq,
+        np.array(As_rows, dtype=float),
+        np.array(Aa_rows, dtype=float),
+        np.array(by, dtype=float),
+    )
+
+
+def setcon_masonry(nel, G, ix_mode="A17"):
+    ix_mode = ix_mode.upper()
+    if ix_mode not in ("A17", "A18"):
+        raise ValueError("ix_mode must be 'A17' or 'A18'.")
+
+    na = 13
+    neq = 12
+    nin = 5 if ix_mode == "A17" else 7
+    nr = neq + nin
+    ncones = 4 if ix_mode == "A17" else 3
+
+    Ab = lil_matrix((3 * nel * nr, 9 * nel + 1 + 3 * nel * na))
     blc = np.zeros(3 * nel * nr, dtype=float)
     buc = np.zeros(3 * nel * nr, dtype=float)
-
-    # 3 cones per constitutive point
-    C = [None] * (3 * 3 * nel)
+    C = [None] * (ncones * 3 * nel)
 
     for el in range(nel):
         for no in range(3):
-            t         = G[el, 0]
-            fcm       = G[el, 1]
-            ftx       = G[el, 2]
-            nu        = G[el, 3]
-            fcs       = G[el, 4]
-            fts       = G[el, 5]
-            fce       = G[el, 6]
-            xi        = G[el, 7]
-            phi_s     = G[el, 8]
-            fcl       = G[el, 9]
-            phi_l     = G[el, 10]
-            omega_max = G[el, 11]
+            (
+                t,
+                fcm,
+                ftx,
+                nu,
+                fcs,
+                fts,
+                fce,
+                xi,
+                phi_s,
+                fcl,
+                phi_l,
+                omega_max,
+            ) = G[el, :12]
 
             Aseq, Aaeq, byeq, As, Aa, by = Ab_masonry_ps(
-                ftx, fcm, nu, fcs, fts, fce, xi, phi_s, fcl, phi_l, omega_max
+                ftx, fcm, nu, fcs, fts, fce, xi,
+                phi_s, fcl, phi_l, omega_max,
+                ix_mode=ix_mode,
             )
 
             rp = (3 * el + no) * nr
-            r  = slice(rp, rp + nr)
+            r = slice(rp, rp + nr)
 
-            cp_beta = 9 * el + no * 3
-            Ab[r, slice(cp_beta, cp_beta + 3)] = np.vstack((Aseq / t, As))
+            cp_beta = 9 * el + 3 * no
+            cp_alpha = 9 * nel + 1 + (3 * el + no) * na
 
-            cp_alfa = 9 * nel + 1 + (3 * el + no) * na
-            Ab[r, slice(cp_alfa, cp_alfa + na)] = np.vstack((Aaeq, Aa))
+            Ab[r, cp_beta:cp_beta + 3] = np.vstack((Aseq / t, As))
+            Ab[r, cp_alpha:cp_alpha + na] = np.vstack((Aaeq, Aa))
 
-            blc[r] = np.concatenate((byeq, -np.inf * np.ones_like(by)))
+            blc[r] = np.concatenate((byeq, -np.inf * np.ones(len(by))))
             buc[r] = np.concatenate((byeq, by))
 
-            # Cone 1: a1 >= sqrt(a2^2 + a3^2)
-            C[3 * (3 * el + no) + 0] = {
+            c0 = ncones * (3 * el + no)
+
+            C[c0] = {
                 "type": "MSK_CT_QUAD",
-                "sub": cp_alfa + np.array([0, 1, 2])
+                "sub": cp_alpha + np.array([0, 1, 2]),
             }
 
-            # Cone 2: I -> 2*a5*a6 >= a7^2
-            C[3 * (3 * el + no) + 1] = {
+            C[c0 + 1] = {
                 "type": "MSK_CT_RQUAD",
-                "sub": cp_alfa + np.array([4, 5, 6])
+                "sub": cp_alpha + np.array([4, 5, 6]),
             }
 
-            #Cone 3: X -> 2*a8*a9 >= a10^2
-            C[3 * (3 * el + no) + 2] = {
+            if ix_mode == "A17":
+                C[c0 + 2] = {
+                    "type": "MSK_CT_RQUAD",
+                    "sub": cp_alpha + np.array([10, 11, 12]),
+                }
+
+            C[c0 + ncones - 1] = {
                 "type": "MSK_CT_RQUAD",
-                "sub": cp_alfa + np.array([7, 8, 9])
+                "sub": cp_alpha + np.array([7, 8, 9]),
             }
 
     return Ab.tocsr(), blc, buc, C

@@ -1,63 +1,64 @@
 import numpy as np
 import matplotlib.pyplot as plt
+from post.thesis_plot_style import THESIS_COLORS, set_thesis_plot_style
 
-cy = np.array([
-    [0, 1, 2],
-    [1, 2, 0],
-    [2, 0, 1]
-])
 
-def plotDof(X, T, y, supeq, nel, nno, scale):
-    plt.figure(3)
-    plt.axis("equal")
-    plt.axis("off")
-    plt.gca().set_aspect("equal", adjustable="box")
+CY = np.array([[0, 1, 2], [1, 2, 0], [2, 0, 1]])
 
+
+def full_displacement_vector(y, support_dofs, number_nodes, scale):
     y = -np.asarray(y, dtype=float).ravel() * scale
+    support_dofs = set(np.asarray(support_dofs, dtype=int).tolist())
+    full_y = np.zeros(2 * number_nodes)
+
+    j = 0
+    for dof in range(2 * number_nodes):
+        if dof not in support_dofs:
+            full_y[dof] = y[j]
+            j += 1
+    return full_y
 
 
-    # expand reduced y to full y2 (size 2*nno), skipping constrained dofs in supeq
-    supeq = set(np.asarray(supeq, dtype=int).tolist())
-    y2 = np.zeros(2*nno, dtype=float)
-    i = 0
-    for dof in range(2*nno):
-        if dof not in supeq:
-            y2[dof] = y[i]
-            i += 1
+def plotDof(X, T, y, support_dofs, scale, *, show_undeformed=True, figsize=(4.8, 3.6), use_latex=False, savepath=None):
+    set_thesis_plot_style(use_latex)
+    fig, ax = plt.subplots(figsize=figsize)
+    ax.set_aspect("equal", adjustable="box")
+    ax.axis("off")
 
-    nrp = 11
-    xg = np.zeros((2, 3*(nrp-1) + 1), dtype=float)
-    xr = np.zeros((2, 3*(nrp-1) + 1), dtype=float)
+    full_y = full_displacement_vector(y, support_dofs, X.shape[0], scale)
+    points_per_edge = 11
 
-    for el in range(nel):
-        k = 0
-        for si in range(3):
-            no1 = cy[1, si]
-            no2 = cy[2, si]
-            no3 = 3 + cy[0, si]  # mid-side node index in T
+    for el in range(T.shape[0]):
+        original = []
+        deformed = []
 
-            x1 = X[T[el, no1], 0:2] # node coordinates
-            x2 = X[T[el, no2], 0:2] 
+        for side in range(3):
+            n1 = CY[1, side]
+            n2 = CY[2, side]
+            n3 = 3 + CY[0, side]
 
-            v1 = y2[2*T[el, no1]:2*T[el, no1]+2] # nodal displacements
-            v2 = y2[2*T[el, no2]:2*T[el, no2]+2]
-            v3 = y2[2*T[el, no3]:2*T[el, no3]+2]
+            x1 = X[T[el, n1], :2]
+            x2 = X[T[el, n2], :2]
+            v1 = full_y[2 * T[el, n1]:2 * T[el, n1] + 2]
+            v2 = full_y[2 * T[el, n2]:2 * T[el, n2] + 2]
+            v3 = full_y[2 * T[el, n3]:2 * T[el, n3] + 2]
 
-            for j in range(nrp-1):
-                k += 1
-                s = j / (nrp - 1)
+            for j in range(points_per_edge - 1):
+                s = j / (points_per_edge - 1)
+                original.append((1 - s) * x1 + s * x2)
+                deformed.append((1 - s) * x1 + s * x2 + 2 * (s - 1) * (s - 0.5) * v1 + 2 * s * (s - 0.5) * v2 - 4 * s * (s - 1) * v3)
 
-                xg[:, k-1] = (1-s)*x1 + s*x2     #not deformed geometry linear interpolation
-                xr[:, k-1] = (1-s)*x1 + s*x2 + ( #interpolate geometry linear deformation+shape functions
-                    2*(s-1)*(s-0.5)*v1
-                    + 2*s*(s-0.5)*v2
-                    - 4*s*(s-1)*v3
-                )
+        original.append(original[0])
+        deformed.append(deformed[0])
+        original = np.asarray(original)
+        deformed = np.asarray(deformed)
 
-        xg[:, -1] = xg[:, 0]
-        xr[:, -1] = xr[:, 0]
+        if show_undeformed:
+            ax.plot(original[:, 0], original[:, 1], ":", color=THESIS_COLORS["grey"], linewidth=0.65)
+        ax.plot(deformed[:, 0], deformed[:, 1], color=THESIS_COLORS["dark"], linewidth=0.65)
 
-        plt.plot(xg[0, :], xg[1, :], "k:", linewidth=0.2)
-        plt.plot(xr[0, :], xr[1, :], "k-", linewidth=0.4)
-
+    fig.tight_layout(pad=0.05)
+    if savepath:
+        fig.savefig(savepath)
     plt.show()
+    return fig, ax

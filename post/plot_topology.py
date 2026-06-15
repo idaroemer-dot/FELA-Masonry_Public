@@ -1,22 +1,20 @@
 import matplotlib.pyplot as plt
-import numpy as np
+from post.thesis_plot_style import THESIS_COLORS, set_thesis_plot_style
 
-def plot_topology(node_coordinates, elements_topology, number_elements, number_nodes):
-    # plot geometry
-    plt.figure(1)
-    plt.title('Element topologi')
-    plt.axis('equal')
-    local_dof = [0, 5, 1, 3, 2, 4, 0] # local dof indices for plotting element edges
 
-    for el in range(number_elements):
-        plt.plot(node_coordinates[elements_topology[el, local_dof], 0], node_coordinates[elements_topology[el, local_dof], 1], 'b-')
+def plot_topology(X, T, *, figsize=(4.8, 3.6), use_latex=False, savepath=None):
+    set_thesis_plot_style(use_latex)
+    fig, ax = plt.subplots(figsize=figsize)
+    ax.set_aspect("equal", adjustable="box")
+    ax.axis("off")
 
-    # for no in range(number_nodes): # write node numbers
-    #    plt.text(node_coordinates[no, 0], node_coordinates[no, 1], str(no + 1),
-    #             color='blue', backgroundcolor=(0.7, 0.7, 0.7))
+    edge_nodes = [0, 5, 1, 3, 2, 4, 0]
+    for el in range(T.shape[0]):
+        nodes = T[el, edge_nodes]
+        ax.plot(X[nodes, 0], X[nodes, 1], color=THESIS_COLORS["dark"], linewidth=0.55)
 
-    # for el in range(number_elements): # write element numbers
-    #    xp = np.mean(node_coordinates[elements_topology[el, :], :], axis=0)
-    #    plt.text(xp[0], xp[1], str(el + 1), color='black')
-
+    fig.tight_layout(pad=0.05)
+    if savepath:
+        fig.savefig(savepath)
     plt.show()
+    return fig, ax
