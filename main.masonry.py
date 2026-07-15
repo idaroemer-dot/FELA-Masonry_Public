@@ -102,11 +102,14 @@ for node, (x, y) in enumerate(node_coordinates):
 supports = np.array(supports, dtype=int)
 
 
+
 # -----------------------------------------------------------------------------
 # Loads
 # -----------------------------------------------------------------------------
-Fv_total = 105.0e3   # constant vertical load [N]
+Fv_total = 105.0e3   # constant vertical top load [N]
 Fh_ref_total = 1.0   # reference horizontal load [N]
+rho = 1800.0         # masonry density [kg/m^3]
+g = 9.81             # gravitational acceleration [m/s^2]
 
 loads_const = []
 loads_var = []
@@ -139,6 +142,9 @@ for k, node in enumerate(top_nodes):
 loads_const = np.array(loads_const, dtype=float)
 loads_var = np.array(loads_var, dtype=float)
 
+# Add self-weight as a permanent load.
+from model.loads import add_self_loads
+loads_const = add_self_loads(loads_const,node_coordinates,elements_topology,thickness=t,density=rho,g=g,)
 
 # -----------------------------------------------------------------------------
 # FELA problem
@@ -166,6 +172,31 @@ from optimization.mosek_solver import solveopt
 x, alpha, y, lambda_val = solveopt(number_elements,global_equilibrium_reduced,global_load_vector_reduced_const,global_load_vector_reduced_var,Ab, blc, buc, C)
 
 
+# -----------------------------------------------------------------------------
+# Support reactions
+# -----------------------------------------------------------------------------
+S = x[:9 * number_elements]
+
+global_load_total = global_load_vector_const + lambda_val * global_load_vector_var
+
+residual = global_equilibrium @ S - global_load_total
+
+support_reactions = residual[support_dofs]
+
+print("\nSupport reactions:")
+for dof, reaction in zip(support_dofs, support_reactions):
+    node = dof // 2
+    direction = "x" if dof % 2 == 0 else "y"
+    print(
+        f"Node {node:4d}, {direction}-reaction = {reaction / 1000:.3f} kN"
+    )
+
+print("\nSum of reactions:")
+Rx = np.sum(residual[support_dofs[support_dofs % 2 == 0]])
+Ry = np.sum(residual[support_dofs[support_dofs % 2 == 1]])
+
+print(f"Sum Rx = {Rx / 1000:.3f} kN")
+print(f"Sum Ry = {Ry / 1000:.3f} kN")
 
 # -----------------------------------------------------------------------------
 # Results
@@ -184,9 +215,10 @@ for el in range(number_elements):
 print("lambda =", lambda_val)
 print("min sigma_y =", np.min(sy_all))
 print("max sigma_y =", np.max(sy_all))
+print("Top vertical load [kN] =", Fv_total / 1000.0)
+print("Self-weight [kN] =", rho * g * t * length * height / 1000.0)
 print("Sum vertical load [kN] =", np.abs(np.sum(loads_const[:, 2]) / 1000.0))
 print("Sum horizontal collapse load [kN] =", (np.sum(loads_var[:, 2])*lambda_val)/1000.0)
-
 
 # -----------------------------------------------------------------------------
 # Plots
